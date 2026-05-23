@@ -2,6 +2,7 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
+    // ปลดล็อก CORS ป้องกันหน้าเว็บนิ่งสนิท
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -10,6 +11,10 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'อนุญาตเฉพาะ Method POST เท่านั้นครับ' });
     }
 
     const { url } = req.body;
@@ -33,17 +38,15 @@ module.exports = async (req, res) => {
         
         if (response.data && response.data.data) {
             const videoInfo = response.data.data;
-            
-            // 🔥 ส่งตัวแปรกลับไปให้หน้าเว็บตรงตามที่ index.html ต้องการ
             return res.status(200).json({
                 views: videoInfo.play_count || 0,
                 description: videoInfo.title || ""
             });
         } else {
-            return res.status(400).json({ error: 'โครงสร้างข้อมูลไม่สมบูรณ์' });
+            return res.status(400).json({ error: 'โครงสร้างข้อมูลผู้ให้บริการไม่ถูกต้อง' });
         }
 
     } catch (error) {
-        return res.status(500).json({ error: 'ติดต่อ API ไม่สำเร็จ' });
+        return res.status(500).json({ error: 'ไม่สามารถติดต่อเซิร์ฟเวอร์หลักได้' });
     }
 };
