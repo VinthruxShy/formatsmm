@@ -17,7 +17,6 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
         }
 
-        // 🔒 อัปเดตคีย์และโฮสต์ให้ถูกต้องตรงตามคำสั่งจริงของคุณเป๊ะๆ
         const options = {
             method: 'GET',
             url: 'https://tiktok-scraper7.p.rapidapi.com/',
@@ -27,7 +26,6 @@ module.exports = async (req, res) => {
             },
             headers: {
                 'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
-                // แก้ไขตัวเลขคีย์หลักให้ตรงตามหน้าจอของคุณแล้วครับ
                 'x-rapidapi-key': 'ae5e0d0718msha21c8c8facfcb43p18db91jsn57dd5d660839'
             }
         };
@@ -36,6 +34,8 @@ module.exports = async (req, res) => {
         
         if (response.data && response.data.data) {
             const videoInfo = response.data.data;
+            
+            // 🔥 ดึงยอดวิวปัจจุบันตรงๆ (play_count) ส่งกลับไป
             return res.status(200).json({
                 views: videoInfo.play_count || 0,
                 description: videoInfo.title || ""
