@@ -33,8 +33,9 @@ module.exports = async (req, res) => {
             url: 'https://tiktok-all-in-one-downloader.p.rapidapi.com/video/info', 
             params: { video_id: videoId },
             headers: {
-                'X-RapidAPI-Key': 'ใส่_RAPIDAPI_KEY_ของคุณตรงนี้',
-                'X-RapidAPI-Host': 'tiktok-all-in-one-downloader.p.rapidapi.com'
+                'X-RapidAPI-Key': 'ae5e0d0718msha21c8c8facfcb43p18db91jsn57dd5d660839
+',
+                'X-RapidAPI-Host': 'tiktok-scraper7.p.rapidapi.com'
             }
         };
 
