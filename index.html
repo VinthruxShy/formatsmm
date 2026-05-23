@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือแปลงรูปแบบข้อมูล (Format Converter v5.1)</title>
+    <title>เครื่องมือแปลงรูปแบบข้อมูล (Format Converter v6.0)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -86,7 +86,7 @@
         }
         .note {
             font-size: 13px;
-            color: #137333;
+            color: #1a73e8;
             font-weight: bold;
             margin-top: 5px;
         }
@@ -95,7 +95,7 @@
 <body>
 
 <div class="container">
-    <h2>เครื่องมือแปลงรูปแบบข้อมูล + ระบบวิเคราะห์แท็กอัตโนมัติ (v5.1)</h2>
+    <h2>เครื่องมือแปลงรูปแบบข้อมูล + ระบบแกะลิงก์เพียวๆ อัจฉริยะ (v6.0)</h2>
     
     <div class="row">
         <div class="form-group col">
@@ -103,20 +103,19 @@
             <input type="text" id="customServiceId" value="702" placeholder="เช่น 702">
         </div>
         <div class="form-group col">
-            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่พบประวัติตามแท็ก):</label>
+            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่พบประวัติลิงก์นี้):</label>
             <input type="number" id="defaultViews" value="10000" placeholder="เช่น 10000">
         </div>
     </div>
 
     <div class="form-group">
-        <label for="inputData">1. วางข้อความสังเขป TikTok หรือ ข้อมูลจาก Excel ตรงนี้:</label>
-        <textarea id="inputData" placeholder="วางข้อความที่มีแฮชแท็กและลิงก์ได้เลย เช่น:
-คลิปที่ 01: https://www.tiktok.com/... #RoV #RoVเป็นเกมตลก #คลิปRoV"></textarea>
-        <div class="note">✨ ระบบเปิดใช้งานฐานข้อมูลแฮชแท็ก 22 รูปแบบ เพื่อตรวจจับจำนวนวิวอัจฉริยเรียบร้อยแล้ว!</div>
+        <label for="inputData">1. วางลิงก์ URL TikTok เพียวๆ ตรงนี้:</label>
+        <textarea id="inputData" placeholder="วางลิงก์เพียวๆ ยาวๆ ลงมาได้เลยครับ ระบบจะเช็กไอดีท้ายลิงก์กับฐานข้อมูลให้เอง..."></textarea>
+        <div class="note">✨ เปิดใช้งานระบบจำพฤติกรรมลิงก์จากฐานข้อมูลตาราง SMM เรียบร้อยแล้ว!</div>
     </div>
     
     <div class="btn-group">
-        <button onclick="convertData()">⚡ แปลงข้อมูลและวิเคราะห์แท็ก</button>
+        <button onclick="convertData()">⚡ แปลงข้อมูลจากลิงก์เพียวๆ</button>
     </div>
     
     <div class="form-group">
@@ -127,30 +126,29 @@
 </div>
 
 <script>
-// ฐานข้อมูลแท็กที่คุณให้มา
-const tagDatabase = [
-    { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
-    { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #rovth", view: "8000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #fpy", view: "8000" },
-    { tag: "#RoV #rovth #GodlikeCreatorCup #ล่าเงินรางวัล #ไฮไลต์มันส์ๆ", view: "8000" },
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #การจุติของไททัน #ArcaneBrawl", view: "8000" },
-    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #RoV5v5", view: "8000" },
-    { tag: "#RoV #rovth #RoVThailand", view: "10000" },
-    { tag: "#RoV #rovth #fpy", view: "10000" },
-    { tag: "#RoV #rovth #trending", view: "10000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #trending", view: "12000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #เล่นRoV #rovh", view: "12000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #RoVเกมภาพสวย", view: "12000" },
-    { tag: "#RoV #rovth #เล่นRoV", view: "12000" },
-    { tag: "#RoV #rovth #คลิปRoV", view: "8000" },
-    { tag: "#RoV #rovth #GodlikeCreatorCup #Elimination", view: "8000" },
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #FlowbornArmorTitan", view: "10000" },
-    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #ใส่นัวแฟมิลี่", view: "8000" },
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #TitanFever #FortuneSurvival", view: "10000" },
-    { tag: "#RoV #RoVเป็นเกมตลก #ล็อกอินลุ้นสกินMystical", view: "8000" },
-    { tag: "#RoV #rovth #GodlikeCreatorCup #รอบชิงชนะเลิศ", view: "10000" },
-    { tag: "#RoV #rovth #GodlikeCreatorCup #TheGodlikeJourney", view: "10000" }
+// ฐานข้อมูลที่ผูก ID ท้ายลิงก์จริงเข้ากับจำนวนวิวจากตาราง format smm ของคุณ
+const urlDatabase = [
+    { id: "7642936997614570759", view: "10000" },
+    { id: "7642936968157859079", view: "10000" },
+    { id: "7642936932149759240", view: "8000" },
+    { id: "7642936907759914247", view: "10000" },
+    { id: "7642936876998954247", view: "8000" },
+    { id: "7642936835102067975", view: "10000" },
+    { id: "7642936809306983688", view: "8000" },
+    { id: "7642935948275223816", view: "12000" },
+    { id: "7642935910598118664", view: "12000" },
+    { id: "7642935888317779208", view: "12000" },
+    { id: "7642935828611730706", view: "12000" },
+    { id: "7642935810420919559", view: "10000" },
+    { id: "7642935773003599122", view: "10000" },
+    { id: "7642935749003775240", view: "10000" },
+    { id: "7642935710395239687", view: "8000" },
+    { id: "7642935671035825426", view: "8000" },
+    { id: "7642935635774295314", view: "8000" },
+    { id: "7642935601192291592", view: "8000" },
+    { id: "7642935567071595794", view: "8000" },
+    { id: "7642935512898063624", view: "6000" },
+    { id: "7642935473500900616", view: "6000" }
 ];
 
 function convertData() {
@@ -159,7 +157,7 @@ function convertData() {
     const defaultViews = document.getElementById('defaultViews').value.trim() || '10000';
     
     if (!input.trim()) {
-        alert('กรุณากรอกหรือวางข้อมูลก่อนครับ');
+        alert('กรุณาวางลิงก์ข้อมูลก่อนครับ');
         return;
     }
 
@@ -173,48 +171,26 @@ function convertData() {
         let url = '';
         let views = '';
 
-        // 1. ค้นหาลิงก์ URL จากในบรรทัดนั้นๆ
-        let columns = line.split('\t').map(col => col.trim());
-        let urlIndex = columns.findIndex(col => col.startsWith('http://') || col.startsWith('https://'));
-
-        if (urlIndex !== -1) {
-            url = columns[urlIndex];
-            if (urlIndex < columns.length - 1 && columns[urlIndex + 1] !== '') {
-                views = columns[urlIndex + 1].replace(/[^0-9]/g, '');
-            }
-        } else {
-            const urlRegex = /(https?:\/\/[^\s]+)/;
-            const foundUrl = line.match(urlRegex);
-            if (foundUrl) url = foundUrl[0];
-        }
-
-        // 2. ตรวจสอบยอดวิวแบบระบุตรงตัวพ่วงท้าย เช่น (View 6,000)
-        if (!views) {
-            const viewMatch = line.match(/[Vv]iew\s?([\d,]+)/);
-            if (viewMatch && viewMatch[1]) {
-                views = viewMatch[1].replace(/,/g, '');
-            }
-        }
-
-        // 3. 🔥 ระบบวิเคราะห์แท็กอัตโนมัติ (Match แฮชแท็กจากฐานข้อมูลของคุณ)
-        if (!views) {
-            let matchedView = '';
+        // ดึงเฉพาะตัวลิงก์ URL ออกมาจากบรรทัดนั้นๆ
+        const urlRegex = /(https?:\/\/[^\s]+)/;
+        const foundUrl = line.match(urlRegex);
+        
+        if (foundUrl) {
+            url = foundUrl[0];
             
-            // วนลูปเช็คแฮชแท็กในฐานข้อมูลทีละรายการ
-            for (let item of tagDatabase) {
-                // แยกแฮชแท็กออกเป็นคำๆ
-                let tags = item.tag.split(' ');
-                // เช็คว่าแฮชแท็กทุกตัวในคู่นั้น มีอยู่ในบรรทัดข้อความทั้งหมดหรือไม่
-                let isMatchAll = tags.every(t => line.toLowerCase().includes(t.toLowerCase()));
-                
-                if (isMatchAll) {
-                    matchedView = item.view;
-                    break; // เจอแล้วหยุดลูปเพื่อดึงค่านั้นทันที
-                }
-            }
+            // 🔥 วิธีการสแกนหาตัวเลข ID หลังเครื่องหมายสแลช (/) ตัวสุดท้ายของลิงก์
+            // เช่น ดึง "7642935473500900616" ออกมาจากลิงก์เพื่อเอาไปเทียบวิว
+            const urlParts = url.split('/');
+            let lastPart = urlParts[urlParts.length - 1].split('?')[0].trim(); // ตัดส่วนพารามิเตอร์ ? ออกถ้ามี
+
+            // นำ ID ที่แกะได้ไปค้นหาในฐานข้อมูล
+            let matchDatabase = urlDatabase.find(item => item.id === lastPart);
             
-            // ถ้าจับคู่แท็กสำเร็จให้ดึงค่านั้นมาใช้ แต่ถ้าไม่ตรงกับชุดไหนเลย ให้ใช้ค่าเริ่มต้นด้านบน
-            views = matchedView ? matchedView : defaultViews;
+            if (matchDatabase) {
+                views = matchDatabase.view; // ถ้าตรงคู่ในตาราง จะดึงค่ายอดวิวที่แท้จริงมาใส่ให้ทันที
+            } else {
+                views = defaultViews; // ถ้าเป็นลิงก์ใหม่ๆ ที่ไม่อยู่ในตาราง 21 ตัวนี้ จะใช้ค่าเริ่มต้นด้านบนแทนครับ
+            }
         }
 
         if (url) {
@@ -223,7 +199,7 @@ function convertData() {
     });
 
     if (result.length === 0) {
-        alert('ไม่พบลิงก์ URL ในข้อความที่นำมาวางครับ');
+        alert('ไม่พบลิงก์ URL ในช่องรับข้อมูลครับ');
         return;
     }
 
@@ -239,7 +215,7 @@ function copyToClipboard() {
     outputText.select();
     outputText.setSelectionRange(0, 99999);
     document.execCommand("copy");
-    alert("คัดลอกข้อมูลเรียบร้อยแล้ว!");
+    alert("คัดลอกรูปแบบ Format ไปใช้งานเรียบร้อยแล้ว!");
 }
 </script>
 
