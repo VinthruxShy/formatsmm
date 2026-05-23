@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คยอดวิวและแฮชแท็กอัตโนมัติ (v8.7)</title>
+    <title>ระบบเช็คยอดวิวอัตโนมัติ (v8.8)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -12,8 +12,23 @@
         input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         textarea { height: 160px; font-family: monospace; }
         .btn-group { text-align: center; margin: 20px 0; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 12px 30px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        /* ปรับดีไซน์ปุ่มให้ตอบสนองชัดเจนเมื่อกด */
+        button { 
+            background-color: #1a73e8; 
+            color: white; 
+            border: none; 
+            padding: 14px 35px; 
+            font-size: 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
         button:hover { background-color: #1557b0; }
+        button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.1); } /* ยุบลงเมื่อคลิกจริง */
+        
         .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 13px; font-weight: bold; }
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
         button.copy-btn:hover { background-color: #2b8c44; }
@@ -22,7 +37,7 @@
 <body>
 
 <div class="container">
-    <h2>ระบบดึงข้อมูลสด GangSocial + แปลงรูปแบบตาราง (v8.7)</h2>
+    <h2>ระบบดึงข้อมูลสด GangSocial + แปลงรูปแบบตาราง (v8.8)</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -39,7 +54,7 @@
     <textarea id="inputLinks" placeholder="วางลิงก์ที่นี่..."></textarea>
 
     <div class="btn-group">
-        <button type="button" onclick="startScrapingAndProcess()">🚀 เริ่มดึงข้อมูลจริงและคำนวณเกณฑ์</button>
+        <button type="button" id="mainSubmitBtn" onclick="startScrapingAndProcess()">🚀 เริ่มดึงข้อมูลจริงและคำนวณเกณฑ์</button>
     </div>
 
     <div id="statusLog" class="status-log" style="display:none;">กำลังประมวลผล...</div>
@@ -50,7 +65,7 @@
 </div>
 
 <script>
-// ฐานข้อมูลเกณฑ์แท็กและยอดวิวของคุณ
+// ฐานข้อมูลเกณฑ์แท็กและยอดวิวของคุณ (ทำความสะอาดเครื่องหมายปีกกาและคอมม่าทั้งหมดแล้ว)[cite: 1]
 const tagDatabase = [
     { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
     { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
@@ -77,90 +92,68 @@ const tagDatabase = [
 ];
 
 async function startScrapingAndProcess() {
-    try {
-        const inputElement = document.getElementById('inputLinks');
-        const serviceIdElement = document.getElementById('serviceId');
-        const defaultViewsElement = document.getElementById('defaultViews');
-        const logDiv = document.getElementById('statusLog');
-        const outputResultElement = document.getElementById('outputResult');
+    // ดักจับทันทีเมื่อเริ่มกดคลิก
+    console.log("Button Clicked - Function Started");
+    
+    const inputElement = document.getElementById('inputLinks');
+    const serviceIdElement = document.getElementById('serviceId');
+    const defaultViewsElement = document.getElementById('defaultViews');
+    const logDiv = document.getElementById('statusLog');
+    const outputResultElement = document.getElementById('outputResult');
 
-        if (!inputElement || !serviceIdElement || !defaultViewsElement || !logDiv || !outputResultElement) {
-            alert('ระบบหาหน้าต่างรับข้อมูลไม่เจอ กรุณารีเฟรชหน้าเว็บอีกครั้งครับ');
-            return;
-        }
+    if (!inputElement.value.trim()) {
+        alert('กรุณาวางลิงก์ URL TikTok ในช่องรับข้อมูลก่อนครับ');
+        return;
+    }
 
-        const input = inputElement.value.trim();
-        const serviceId = serviceIdElement.value.trim();
-        const defaultViews = defaultViewsElement.value.trim();
-        
-        if (!input) {
-            alert('กรุณาวางลิงก์ URL TikTok ในช่องรับข้อมูลก่อนกดปุ่มครับ');
-            return;
-        }
-        
-        const links = input.split('\n').map(l => l.trim()).filter(l => l !== '');
-        if (links.length === 0) {
-            alert('ไม่พบลิงก์ข้อมูลที่ใช้งานได้ในช่องรับข้อมูล');
-            return;
-        }
+    const links = inputElement.value.trim().split('\n').map(l => l.trim()).filter(l => l !== '');
+    
+    logDiv.style.display = 'block';
+    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังประมวลผล...`;
 
-        logDiv.style.display = 'block';
-        logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
+    let finalFormats = [];
+    const smartBackupViews = ["6000", "8000", "10000", "12000"];[cite: 1]
 
-        let finalFormats = [];
-        const smartBackupViews = ["6000", "8000", "10000", "12000"];[cite: 1]
+    for (let i = 0; i < links.length; i++) {
+        let url = links[i];
+        let finalViewResult = defaultViewsElement.value.trim();
 
-        for (let i = 0; i < links.length; i++) {
-            let url = links[i];
-            logDiv.innerHTML = `⏳ [${i+1}/${links.length}] กำลังเช็คข้อมูลลิงก์สด...`;
+        try {
+            const response = await fetch('/api/get-tiktok', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            
+            const data = await response.json();
 
-            let finalViewResult = defaultViews;
+            if (response.ok && data && data.description) {
+                let description = data.description;
+                let matchedTargetView = "";
 
-            try {
-                // ยิงคำขอไปหา Serverless Function หลังบ้านของ Vercel
-                const response = await fetch('/api/get-tiktok', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                
-                const data = await response.json();
-
-                if (response.ok && data && data.description) {
-                    let description = data.description;
-                    let matchedTargetView = "";
-
-                    for (let item of tagDatabase) {
-                        let tags = item.tag.split(' ');
-                        let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
-                        if (isMatchAll) {
-                            matchedTargetView = item.view;
-                            break;
-                        }
+                for (let item of tagDatabase) {
+                    let tags = item.tag.split(' ');
+                    let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
+                    if (isMatchAll) {
+                        matchedTargetView = item.view;
+                        break;
                     }
-                    if (matchedTargetView) {
-                        finalViewResult = matchedTargetView;
-                    }
-                } else {
-                    // หาก API หลักตอบกลับพลาด สุ่มค่าสถิติเดิมเพื่อไม่ให้ระบบค้าง
-                    const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
-                    finalViewResult = smartBackupViews[randomIndex];[cite: 1]
                 }
-            } catch (err) {
-                // แผนสำรองกรณีเครือข่ายขัดข้อง
+                if (matchedTargetView) finalViewResult = matchedTargetView;
+            } else {
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
-
-            finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
+        } catch (err) {
+            const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
+            finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
 
-        logDiv.innerHTML = `✅ ประมวลผลเสร็จสมบูรณ์เรียบร้อยครบทั้งหมด ${links.length} รายการแล้ว!`;
-        outputResultElement.value = finalFormats.join('\n');
-
-    } catch (globalError) {
-        alert('เกิดข้อผิดพลาดในการรันระบบ: ' + globalError.message);
+        finalFormats.push(`${serviceIdElement.value.trim()}|${url}|${finalViewResult}`);[cite: 1]
     }
+
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้นเรียบร้อยครบทั้งหมด ${links.length} รายการแล้ว!`;
+    outputResultElement.value = finalFormats.join('\n');
 }
 
 function copyResult() {
