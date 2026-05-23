@@ -2,16 +2,14 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // ตั้งค่าหัวข้อเพื่ออนุญาตให้ทุกบราวเซอร์เข้าถึงได้โดยไม่ติดบล็อกความปลอดภัย
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // ปลดล็อก CORS ดักหน้าหลังบ้าน เพื่อให้เว็บบราวเซอร์ยอมปล่อยผ่าน
+    res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Content-Type');
 
-    // จัดการกรณีบราวเซอร์ตรวจสอบสิทธิ์ (Preflight request)
     if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+        return res.status(200).end();
     }
 
     try {
@@ -20,6 +18,7 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
         }
 
+        // หลังบ้านเป็นคนยิงไปหา RapidAPI เอง บราวเซอร์จะไม่บล็อก
         const options = {
             method: 'POST',
             url: 'https://tiktok-scraper7.p.rapidapi.com/api/video/info', 
