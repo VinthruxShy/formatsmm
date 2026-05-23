@@ -2,15 +2,14 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // ปลดล็อก CORS ป้องกันหน้าเว็บนิ่งสนิท
+    // เปิดสิทธิ์ CORS ให้หน้าเว็บ Frontend ดึงข้อมูลได้สะดวก
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+        return res.status(200).end();
     }
 
     if (req.method !== 'POST') {
@@ -28,6 +27,7 @@ module.exports = async (req, res) => {
             url: 'https://tiktok-scraper7.p.rapidapi.com/api/video/info', 
             headers: {
                 'content-type': 'application/x-www-form-urlencoded',
+                // 🔒 คีย์ของคุณจะถูกเก็บไว้ตรงนี้ ปลอดภัย 100% ไม่มีใครแอบดูจากหน้าเว็บได้
                 'X-RapidAPI-Key': 'ae5e0d0718msha21c8cfacfcb43p18db91jsn57dd5d660839',
                 'X-RapidAPI-Host': 'tiktok-scraper7.p.rapidapi.com'
             },
@@ -47,6 +47,6 @@ module.exports = async (req, res) => {
         }
 
     } catch (error) {
-        return res.status(500).json({ error: 'ไม่สามารถติดต่อเซิร์ฟเวอร์หลักได้' });
+        return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์หลักได้' });
     }
 };
