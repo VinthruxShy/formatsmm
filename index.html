@@ -55,12 +55,12 @@
             <input type="text" id="serviceId" value="702">
         </div>
         <div class="setup-item">
-            <label>🎬 ล็อกลำดับคลิปตัวล่างสุดให้เริ่มที่หมายเลข:</label>
+            <label>🎬 เลือกตัดข้ามเพื่อเริ่มที่คลิปหมายเลข:</label>
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <label>❌ ยกเว้น/ข้ามคลิปที่ไม่ลง (ใส่เลขแยกด้วยจุลภาค):</label>
-            <input type="text" id="skipClips" value="" placeholder="เช่น 15 หรือ 5,12">
+            <label>❌ ยกเว้นคลิปที่ไม่ลงเพิ่มเติม (ถ้ามี):</label>
+            <input type="text" id="skipClips" value="" placeholder="เช่น 15">
         </div>
         <div class="setup-item">
             <label>📊 วิวมาตรฐาน (กรณีเกินตาราง 22 คลิป):</label>
@@ -68,11 +68,11 @@
         </div>
     </div>
 
-    <label>1. วางลิงก์ URL TikTok เพียวๆ เรียงจากล่าสุด (บนสุด) ไปหาเก่าสุด (ล่างสุด):</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ที่นี่..."></textarea>
+    <label>1. วางลิงก์ URL TikTok ทั้งหมด (ระบบจะตัดอันที่เก่ากว่าตัวระบุทิ้งให้อัตโนมัติ):</label>
+    <textarea id="inputLinks" placeholder="วางลิงก์ยาวพรืดได้เลย..."></textarea>
 
     <div class="btn-group">
-        <button type="button" onclick="formatBySequence()">⚡ เริ่มประมวลผลแยกเลเยอร์ตารางทันที</button>
+        <button type="button" onclick="formatWithAutoTrim()">⚡ เริ่มกรองลิงก์และจัดรูปแบบเลเยอร์</button>
     </div>
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
@@ -124,7 +124,7 @@ const viewSequenceTable = [
     "10000"  // คลิปที่ 22
 ];
 
-function formatBySequence() {
+function formatWithAutoTrim() {
     const logDiv = document.getElementById('statusLog');
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
@@ -146,49 +146,50 @@ function formatBySequence() {
         return;
     }
 
-    // แกะหมายเลขคลิปที่พี่สั่งข้าม
+    // แกะหมายเลขคลิปที่สั่งข้าม
     const skippedClips = skipClipsInput.split(',')
         .map(item => parseInt(item.trim()))
         .filter(item => !isNaN(item));
 
-    logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ กำลังประมวลผลตารางแยกเลเยอร์...`;
-    
     tableBody.innerHTML = '';
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ [จุดแก้บั๊กสำคัญ] ตรรกะเรียงลำดับแถวแบบสมบูรณ์ชัวร์ 100%:
-    // ลิงก์ล่างสุด (ตัวสุดท้ายของ Array) ต้องถูกบังคับล็อกให้เท่ากับเลขเริ่มต้นที่พี่กรอกเสมอ!
+    // ⚡ [ตรรกะใหม่เด็ดขาด] คำนวณแจกแจงหมายเลขคลิปให้ทุกลิงก์จากล่างขึ้นบนก่อน (มองว่าลิงก์ล่างสุดคือคลิปที่ 1)
     let clipAssignments = new Array(links.length);
-    let currentClipNumber = startClipNo;
+    let currentClipNumber = 1;
 
-    // เดินลูปถอยหลังจากล่างขึ้นบน เพื่อแจกหมายเลขคลิปให้ถูกต้องตามแพทเทิร์นงานจริง
     for (let i = links.length - 1; i >= 0; i--) {
-        // ดักเช็คกรณีหมายเลขไปตรงกับคลิปที่สั่งข้าม ให้ดีดตัวเลขขยับไปข้างหน้าทันที
         while (skippedClips.includes(currentClipNumber)) {
             currentClipNumber++;
         }
         clipAssignments[i] = currentClipNumber;
-        currentClipNumber++; // ลิงก์แถวที่อยู่ถัดขึ้นไปข้างบน จะได้หมายเลขบวกเพิ่มขึ้นทีละ 1
+        currentClipNumber++;
     }
 
-    // นำหมายเลขคลิปที่ล็อกตำแหน่งถูกต้องแล้ว มาจัด Format และพ่นลงตารางเลเยอร์จากบนลงล่าง
+    // ⚡ [จุดคัดกรอง] วนลูปตรวจสอบ ถ้าลิงก์ไหนได้หมายเลขคลิปต่ำกว่าจุดเริ่มต้น (startClipNo) จะถูกตัดทิ้งทันที!
+    let activeCount = 0;
     for (let i = 0; i < links.length; i++) {
-        let url = links[i];
         let assignedClipNo = clipAssignments[i];
-        let sequenceIndex = assignedClipNo - 1; // แปลงลำดับคลิปจริงให้เป็นตำแหน่ง Index ของตาราง (เริ่มที่ 0)
+        
+        // ถ้าน้อยกว่าเลขคลิปที่พี่สั่งเริ่มทำ (เช่น น้อยกว่า 16) ให้ข้ามลิงก์นี้ไปเลย!
+        if (assignedClipNo < startClipNo) {
+            continue; 
+        }
+
+        activeCount++;
+        let url = links[i];
+        let sequenceIndex = assignedClipNo - 1;
         let targetView = defaultViews;
 
-        // ดึงยอดวิวตามดัชนีตาราง 22 คลิปของพี่
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // รวมร่างโครงสร้างส่งงาน Format SMM
+        // ประกอบร่าง format SMM
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // ฉีดแถวตาราง Preview
+        // ฉีดแถวตาราง Preview เฉพาะตัวที่ผ่านการคัดเลือก
         tableRowsHtml += `
             <tr>
                 <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
@@ -202,7 +203,8 @@ function formatBySequence() {
     tableBody.innerHTML = tableRowsHtml;
     tableContainer.style.display = 'block';
 
-    logDiv.innerHTML = `✅ แก้ไขระบบลำดับแถวเรียบร้อยแล้ว! ประมวลผลเสร็จสิ้นจำนวน ${finalFormats.length} รายการ`;
+    logDiv.style.display = 'block';
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! ตัดลิงก์เก่าทิ้งอัตโนมัติ เหลือเฉพาะคลิปที่ ${startClipNo} เป็นต้นไป รวมทั้งหมด ${activeCount} รายการ`;
 }
 
 function copyResult() {
