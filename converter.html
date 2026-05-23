@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครื่องมือแปลงรูปแบบข้อมูล (Format Converter v5.1)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #1a73e8;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .btn-group {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button.copy-btn {
+            background-color: #34a853;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button.copy-btn:hover {
+            background-color: #2b8c44;
+        }
+        .note {
+            font-size: 13px;
+            color: #137333;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>เครื่องมือแปลงรูปแบบข้อมูล + ระบบวิเคราะห์แท็กอัตโนมัติ (v5.1)</h2>
+    
+    <div class="row">
+        <div class="form-group col">
+            <label for="customServiceId">💡 เลขบริการด้านหน้า:</label>
+            <input type="text" id="customServiceId" value="702" placeholder="เช่น 702">
+        </div>
+        <div class="form-group col">
+            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่พบประวัติตามแท็ก):</label>
+            <input type="number" id="defaultViews" value="10000" placeholder="เช่น 10000">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="inputData">1. วางข้อความสังเขป TikTok หรือ ข้อมูลจาก Excel ตรงนี้:</label>
+        <textarea id="inputData" placeholder="วางข้อความที่มีแฮชแท็กและลิงก์ได้เลย เช่น:
+คลิปที่ 01: https://www.tiktok.com/... #RoV #RoVเป็นเกมตลก #คลิปRoV"></textarea>
+        <div class="note">✨ ระบบเปิดใช้งานฐานข้อมูลแฮชแท็ก 22 รูปแบบ เพื่อตรวจจับจำนวนวิวอัจฉริยเรียบร้อยแล้ว!</div>
+    </div>
+    
+    <div class="btn-group">
+        <button onclick="convertData()">⚡ แปลงข้อมูลและวิเคราะห์แท็ก</button>
+    </div>
+    
+    <div class="form-group">
+        <label for="outputData">2. ผลลัพธ์รูปแบบที่ต้องการ (Format):</label>
+        <textarea id="outputData" readonly placeholder="ผลลัพธ์จะแสดงที่นี่..."></textarea>
+        <button class="copy-btn" onclick="copyToClipboard()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
+    </div>
+</div>
+
+<script>
+// ฐานข้อมูลแท็กที่คุณให้มา
+const tagDatabase = [
+    { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
+    { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #rovth", view: "8000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #fpy", view: "8000" },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #ล่าเงินรางวัล #ไฮไลต์มันส์ๆ", view: "8000" },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #การจุติของไททัน #ArcaneBrawl", view: "8000" },
+    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #RoV5v5", view: "8000" },
+    { tag: "#RoV #rovth #RoVThailand", view: "10000" },
+    { tag: "#RoV #rovth #fpy", view: "10000" },
+    { tag: "#RoV #rovth #trending", view: "10000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #trending", view: "12000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #เล่นRoV #rovh", view: "12000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #RoVเกมภาพสวย", view: "12000" },
+    { tag: "#RoV #rovth #เล่นRoV", view: "12000" },
+    { tag: "#RoV #rovth #คลิปRoV", view: "8000" },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #Elimination", view: "8000" },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #FlowbornArmorTitan", view: "10000" },
+    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #ใส่นัวแฟมิลี่", view: "8000" },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #TitanFever #FortuneSurvival", view: "10000" },
+    { tag: "#RoV #RoVเป็นเกมตลก #ล็อกอินลุ้นสกินMystical", view: "8000" },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #รอบชิงชนะเลิศ", view: "10000" },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #TheGodlikeJourney", view: "10000" }
+];
+
+function convertData() {
+    const input = document.getElementById('inputData').value;
+    const customServiceId = document.getElementById('customServiceId').value.trim();
+    const defaultViews = document.getElementById('defaultViews').value.trim() || '10000';
+    
+    if (!input.trim()) {
+        alert('กรุณากรอกหรือวางข้อมูลก่อนครับ');
+        return;
+    }
+
+    const lines = input.split('\n');
+    let result = [];
+
+    lines.forEach(line => {
+        if (line.trim() === '') return;
+
+        let serviceId = customServiceId || '702';
+        let url = '';
+        let views = '';
+
+        // 1. ค้นหาลิงก์ URL จากในบรรทัดนั้นๆ
+        let columns = line.split('\t').map(col => col.trim());
+        let urlIndex = columns.findIndex(col => col.startsWith('http://') || col.startsWith('https://'));
+
+        if (urlIndex !== -1) {
+            url = columns[urlIndex];
+            if (urlIndex < columns.length - 1 && columns[urlIndex + 1] !== '') {
+                views = columns[urlIndex + 1].replace(/[^0-9]/g, '');
+            }
+        } else {
+            const urlRegex = /(https?:\/\/[^\s]+)/;
+            const foundUrl = line.match(urlRegex);
+            if (foundUrl) url = foundUrl[0];
+        }
+
+        // 2. ตรวจสอบยอดวิวแบบระบุตรงตัวพ่วงท้าย เช่น (View 6,000)
+        if (!views) {
+            const viewMatch = line.match(/[Vv]iew\s?([\d,]+)/);
+            if (viewMatch && viewMatch[1]) {
+                views = viewMatch[1].replace(/,/g, '');
+            }
+        }
+
+        // 3. 🔥 ระบบวิเคราะห์แท็กอัตโนมัติ (Match แฮชแท็กจากฐานข้อมูลของคุณ)
+        if (!views) {
+            let matchedView = '';
+            
+            // วนลูปเช็คแฮชแท็กในฐานข้อมูลทีละรายการ
+            for (let item of tagDatabase) {
+                // แยกแฮชแท็กออกเป็นคำๆ
+                let tags = item.tag.split(' ');
+                // เช็คว่าแฮชแท็กทุกตัวในคู่นั้น มีอยู่ในบรรทัดข้อความทั้งหมดหรือไม่
+                let isMatchAll = tags.every(t => line.toLowerCase().includes(t.toLowerCase()));
+                
+                if (isMatchAll) {
+                    matchedView = item.view;
+                    break; // เจอแล้วหยุดลูปเพื่อดึงค่านั้นทันที
+                }
+            }
+            
+            // ถ้าจับคู่แท็กสำเร็จให้ดึงค่านั้นมาใช้ แต่ถ้าไม่ตรงกับชุดไหนเลย ให้ใช้ค่าเริ่มต้นด้านบน
+            views = matchedView ? matchedView : defaultViews;
+        }
+
+        if (url) {
+            result.push(`${serviceId}|${url}|${views}`);
+        }
+    });
+
+    if (result.length === 0) {
+        alert('ไม่พบลิงก์ URL ในข้อความที่นำมาวางครับ');
+        return;
+    }
+
+    document.getElementById('outputData').value = result.join('\n');
+}
+
+function copyToClipboard() {
+    const outputText = document.getElementById('outputData');
+    if (!outputText.value) {
+        alert('ไม่มีข้อมูลให้คัดลอกครับ');
+        return;
+    }
+    outputText.select();
+    outputText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    alert("คัดลอกข้อมูลเรียบร้อยแล้ว!");
+}
+</script>
+
+</body>
+</html>
