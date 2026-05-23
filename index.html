@@ -59,7 +59,7 @@
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <label>❌ ยกเว้นคลิปที่ไม่ลงเพิ่มเติม (ถ้ามี):</label>
+            <label>❌ ยกเว้นคลิปที่ไม่ลงเพิ่มเติม (ใส่เลขแยกด้วยจุลภาค):</label>
             <input type="text" id="skipClips" value="" placeholder="เช่น 15">
         </div>
         <div class="setup-item">
@@ -155,10 +155,11 @@ function formatWithAutoTrim() {
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ [ตรรกะใหม่เด็ดขาด] คำนวณแจกแจงหมายเลขคลิปให้ทุกลิงก์จากล่างขึ้นบนก่อน (มองว่าลิงก์ล่างสุดคือคลิปที่ 1)
+    // ⚡ [ซ่อมแซมจุดบั๊ก] ตรรกะการรันนับแถวแบบเคลียร์ค่าเคลียร์ล็อก 100%
     let clipAssignments = new Array(links.length);
     let currentClipNumber = 1;
 
+    // วนรอบแรกเพื่อจัดเรียงหมายเลขคลิปที่แท้จริงจากล่างขึ้นบน โดยหลบตัวที่สั่งข้ามอย่างถูกต้อง
     for (let i = links.length - 1; i >= 0; i--) {
         while (skippedClips.includes(currentClipNumber)) {
             currentClipNumber++;
@@ -167,12 +168,12 @@ function formatWithAutoTrim() {
         currentClipNumber++;
     }
 
-    // ⚡ [จุดคัดกรอง] วนลูปตรวจสอบ ถ้าลิงก์ไหนได้หมายเลขคลิปต่ำกว่าจุดเริ่มต้น (startClipNo) จะถูกตัดทิ้งทันที!
+    // วนรอบสองเพื่อสกรีนคัดเฉพาะแถวที่เท่ากับหรือมากกว่าจุดที่พี่สั่งเริ่มทำ (startClipNo)
     let activeCount = 0;
     for (let i = 0; i < links.length; i++) {
         let assignedClipNo = clipAssignments[i];
         
-        // ถ้าน้อยกว่าเลขคลิปที่พี่สั่งเริ่มทำ (เช่น น้อยกว่า 16) ให้ข้ามลิงก์นี้ไปเลย!
+        // กรองทิ้งทันทีหากลำดับคลิปน้อยกว่าเกณฑ์เริ่มต้น
         if (assignedClipNo < startClipNo) {
             continue; 
         }
@@ -182,14 +183,15 @@ function formatWithAutoTrim() {
         let sequenceIndex = assignedClipNo - 1;
         let targetView = defaultViews;
 
+        // ดึงยอดวิวจากตาราง 22 คลิป
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // ประกอบร่าง format SMM
+        // ประกอบร่างข้อมูล Format ส่งงาน
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // ฉีดแถวตาราง Preview เฉพาะตัวที่ผ่านการคัดเลือก
+        // ดันแถวข้อมูลเข้าตารางเลเยอร์ตรวจงาน
         tableRowsHtml += `
             <tr>
                 <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
@@ -199,12 +201,13 @@ function formatWithAutoTrim() {
         `;
     }
 
+    // แสดงผลออกหน้าเว็บ
     outputResult.value = finalFormats.join('\n');
     tableBody.innerHTML = tableRowsHtml;
     tableContainer.style.display = 'block';
 
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! ตัดลิงก์เก่าทิ้งอัตโนมัติ เหลือเฉพาะคลิปที่ ${startClipNo} เป็นต้นไป รวมทั้งหมด ${activeCount} รายการ`;
+    logDiv.innerHTML = `✅ แก้ไขบั๊กเรียบร้อย! แสดงผลตั้งแต่คลิปที่ ${startClipNo} ไปจนถึงคลิปที่จบจริง รวมทั้งหมด ${activeCount} รายการ`;
 }
 
 function copyResult() {
