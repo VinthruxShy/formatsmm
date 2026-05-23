@@ -13,8 +13,8 @@
         textarea { height: 160px; font-family: monospace; }
         .btn-group { text-align: center; margin: 20px 0; }
         
-        .setup-grid { display: flex; gap: 15px; margin-bottom: 15px; }
-        .setup-item { flex: 1; }
+        .setup-grid { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .setup-item { flex: 1; min-width: 200px; }
         
         button { 
             background-color: #1a73e8; 
@@ -33,7 +33,6 @@
         
         .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 20px; border-radius: 4px; font-size: 14px; font-weight: bold; color: #1a73e8; }
         
-        /* สไตล์ตารางเลเยอร์แยกสำหรับตรวจเช็คงาน */
         .layer-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .layer-table th, .layer-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         .layer-table th { background-color: #f1f3f4; color: #5f6368; font-weight: bold; }
@@ -56,18 +55,22 @@
             <input type="text" id="serviceId" value="702">
         </div>
         <div class="setup-item">
-            <!-- ⚡ พระเอกของงาน: ช่องสำหรับล็อกลำดับคลิปเริ่มต้นที่พี่ต้องการต่อยอดงาน -->
-            <label>🎬 เริ่มทำงานที่คลิปตัวที่ (เช่น 1 หรือ 6 หรือ 21):</label>
+            <label>🎬 เริ่มทำงานที่คลิปตัวที่:</label>
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <label>📊 ยอดวิวมาตรฐาน (กรณีบรรทัดเกินตาราง):</label>
+            <!-- ⚡ ช่องใส่เลขคลิปที่จะข้าม พิมพ์แยกด้วยจุลภาค เช่น 15 หรือ 5,15 -->
+            <label>❌ ยกเว้น/ข้ามคลิปที่ (ใส่เลข เช่น 15):</label>
+            <input type="text" id="skipClips" value="" placeholder="เช่น 15 หรือ 5,12">
+        </div>
+        <div class="setup-item">
+            <label>📊 วิวมาตรฐาน (กรณีเกินตาราง):</label>
             <input type="number" id="defaultViews" value="10000">
         </div>
     </div>
 
     <label>1. วางลิงก์ URL TikTok เพียวๆ เรียงจากล่าสุด (บนสุด) ไปหาเก่าสุด (ล่างสุด):</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ที่ก๊อปปี้มาลงที่นี่..."></textarea>
+    <textarea id="inputLinks" placeholder="วางลิงก์ที่นี่..."></textarea>
 
     <div class="btn-group">
         <button type="button" onclick="formatBySequence()">⚡ เริ่มประมวลผลแยกเลเยอร์ตารางทันที</button>
@@ -75,7 +78,6 @@
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
 
-    <!-- 📊 เลเยอร์ตารางแยกสำหรับตรวจสอบข้อมูลรายคลิป ตาเปล่าเช็กได้ทันที -->
     <div id="tableLayerContainer" style="display: none;">
         <label>👀 ตารางตรวจสอบเลเยอร์ (Preview Layer):</label>
         <table class="layer-table">
@@ -87,18 +89,17 @@
                 </tr>
             </thead>
             <tbody id="layerTableBody">
-                <!-- ข้อมูลจะถูกฉีดเข้ามาด้วย JavaScript -->
             </tbody>
         </table>
     </div>
 
     <label>2. ผลลัพธ์รูปแบบตารางสำเร็จรูปสำหรับส่งงาน (Format SMM):</label>
-    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้ทันทีเมื่อกดปุ่ม..."></textarea>
+    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้เมื่อระบบประมวลผลเสร็จ..."></textarea>
     <button type="button" class="copy-btn" onclick="copyResult()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
 </div>
 
 <script>
-// 🔒 ผูกตารางเกณฑ์ยอดวิว 22 คลิปดั้งเดิมของพี่ (ตำแหน่งอาร์เรย์เริ่มจาก 0 = คลิปที่ 1)
+// 🔒 ตารางเกณฑ์ยอดวิว 22 คลิปดั้งเดิมของพี่
 const viewSequenceTable = [
     "6000",  // คลิปที่ 01
     "6000",  // คลิปที่ 02
@@ -129,6 +130,7 @@ function formatBySequence() {
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
     const startClipNo = parseInt(document.getElementById('startClipNo').value.trim()) || 1;
+    const skipClipsInput = document.getElementById('skipClips').value.trim();
     const defaultViews = document.getElementById('defaultViews').value.trim();
     const outputResult = document.getElementById('outputResult');
     const tableBody = document.getElementById('layerTableBody');
@@ -145,54 +147,62 @@ function formatBySequence() {
         return;
     }
 
+    // แปลงค่าคลิปที่สั่งข้ามให้กลายเป็นกล่อง Array ตัวเลข
+    const skippedClips = skipClipsInput.split(',')
+        .map(item => parseInt(item.trim()))
+        .filter(item => !isNaN(item));
+
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} รายการ กำลังล็อกจับคู่ลำดับเกณฑ์ตามที่กำหนด...`;
+    logDiv.innerHTML = `⏳ กำลังคำนวณการจัด Format และคัดออกคลิปที่สั่งข้าม...`;
     
-    tableBody.innerHTML = ''; // ล้างตารางเลเยอร์เก่า
+    tableBody.innerHTML = '';
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ ตรรกะคำนวณขั้นสูง:
-    // ลิงก์ล่างสุดของกล่องข้อความ จะมีค่าลำดับเท่ากับ startClipNo (ตัวเลขเริ่มต้นที่พี่ระบุ)
-    // และไล่ลำดับบวกเพิ่มขึ้นไปเรื่อยๆ จนถึงลิงก์บนสุดที่เป็นคลิปใหม่ล่าสุด
+    // ⚡ ตรรกะอัจฉริยะคำนวณข้ามแถว:
+    // เราจะวิ่งหาลำดับคลิปที่ถูกต้องจากล่างขึ้นบน โดยถ้าเจอเลขคลิปที่สั่งข้าม มันจะกระโดดข้ามทันที
+    let currentClipNumber = startClipNo;
+    let clipAssignments = [];
+
+    // วิ่งจากล่างขึ้นบนเพื่อลงทะเบียนหมายเลขคลิปที่แท้จริงให้กับลิงก์ (ไม่รวมคลิปที่สั่งข้าม)
+    for (let i = links.length - 1; i >= 0; i--) {
+        // วนลูปเช็คว่าหมายเลขคลิปปัจจุบันตรงกับตัวที่สั่งข้ามไหม ถ้าตรงให้บวกข้ามไปเลย
+        while (skippedClips.includes(currentClipNumber)) {
+            currentClipNumber++;
+        }
+        clipAssignments[i] = currentClipNumber;
+        currentClipNumber++; // ขยับไปคลิปถัดไปสำหรับลิงก์แถวบน
+    }
+
+    // นำโครงสร้างคลิปที่คำนวณเสร็จแล้วมาพ่นออกหน้าจอจากบนลงล่างตามปกติ
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
-        
-        // คำนวณลำดับคลิปจริงแบบย้อนศรจากล่างขึ้นบน โดยอิงจากจุดเริ่มต้นที่พี่สั่งล็อกไว้
-        // ตัวอย่าง: ถ้าพี่ตั้งเริ่มที่ 21 และวางมา 2 ลิงก์ ลิงก์ล่างสุด (i=1) จะได้คลิปที่ 21 | ลิงก์บนสุด (i=0) จะได้คลิปที่ 22
-        let currentClipNumber = startClipNo + ((links.length - 1) - i);
-        
-        // แปลงเลขลำดับให้กลายเป็นตำแหน่งดัชนีของตารางระบบ (ตารางเริ่มนับที่เลข 0)
-        let sequenceIndex = currentClipNumber - 1;
-        
+        let assignedClipNo = clipAssignments[i];
+        let sequenceIndex = assignedClipNo - 1;
         let targetView = defaultViews;
-        
-        // ค้นหายอดวิวในตาราง 22 คลิป
+
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // 1. ประกอบร่างเข้าคู่ส่งงาน (Format)
+        // 1. ผลลัพธ์สำหรับส่งงาน
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // 2. 📊 สร้างแถวตารางแยกเลเยอร์ให้พี่ดูและเช็กงานด้วยตาเปล่าได้ทันที
+        // 2. แถวตารางแยกเลเยอร์ให้เช็คตาเปล่า
         tableRowsHtml += `
             <tr>
-                <td><span class="badge-clip">คลิปที่ ${String(currentClipNumber).padStart(2, '0')}</span></td>
+                <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
                 <td style="word-break: break-all; color: #1a73e8;">${url}</td>
                 <td><span class="badge-view">${Number(targetView).toLocaleString()} วิว</span></td>
             </tr>
         `;
     }
 
-    // ดีดข้อมูลใส่ผลลัพธ์
     outputResult.value = finalFormats.join('\n');
-    
-    // ฉีดแถวข้อมูลแสดงเลเยอร์แยกให้พี่เห็นชัดๆ
     tableBody.innerHTML = tableRowsHtml;
-    tableContainer.style.display = 'block'; // เปิดให้ตารางเลเยอร์โชว์ตัวบนหน้าจอ
+    tableContainer.style.display = 'block';
 
-    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! จัดรูปแบบเลเยอร์และพ่น Format ตามลำดับจริงเรียบร้อยแล้วทั้งหมด ${finalFormats.length} รายการ`;
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! ข้ามคลิปที่ระบุและจัดเลเยอร์ตรงตามเกณฑ์ตารางเรียบร้อย จำนวน ${finalFormats.length} รายการ`;
 }
 
 function copyResult() {
@@ -203,7 +213,7 @@ function copyResult() {
     }
     out.select();
     document.execCommand('copy');
-    alert('คัดลอกรูปแบบ Format ไปใช้งานเรียบร้อยแล้วครับ!');
+    alert('คัดลอกรูปแบบ Format เรียบร้อยแล้วครับ!');
 }
 </script>
 
