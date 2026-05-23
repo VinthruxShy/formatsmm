@@ -3,243 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือแปลงรูปแบบข้อมูลอัจฉริยะ (Format Converter v7.0)</title>
+    <title>ระบบเช็คยอดวิวและแฮชแท็กอัตโนมัติ (v8.0)</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h2 {
-            text-align: center;
-            color: #1a73e8;
-            margin-bottom: 25px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .row {
-            display: flex;
-            gap: 15px;
-        }
-        .col {
-            flex: 1;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-        }
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            resize: vertical;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .rules-area {
-            background-color: #fcf8e3;
-            border: 1px solid #fbeed5;
-            color: #c09853;
-            height: 120px;
-        }
-        .btn-group {
-            margin: 20px 0;
-            text-align: center;
-        }
-        button {
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #1557b0;
-        }
-        button.copy-btn {
-            background-color: #34a853;
-            margin-top: 10px;
-            width: 100%;
-        }
-        button.copy-btn:hover {
-            background-color: #2b8c44;
-        }
-        .note {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
-        .highlight-note {
-            color: #1a73e8;
-            font-weight: bold;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
+        .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 150px; font-family: monospace; }
+        .btn-group { text-align: center; margin: 20px 0; }
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px 30px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #1557b0; }
+        .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 13px; }
+        button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
+        button.copy-btn:hover { background-color: #2b8c44; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>เครื่องมือแปลงรูปแบบข้อมูลสำหรับหลายบัญชี (v7.0)</h2>
+    <h2>ระบบดึงข้อมูลสด GangSocial + แปลงรูปแบบตาราง (v8.0)</h2>
     
-    <div class="row">
-        <div class="form-group col">
-            <label for="customServiceId">💡 เลขบริการด้านหน้า:</label>
-            <input type="text" id="customServiceId" value="702" placeholder="เช่น 702">
+    <div style="display:flex; gap:15px; margin-bottom:15px;">
+        <div style="flex:1;">
+            <label>💡 เลขบริการด้านหน้า:</label>
+            <input type="text" id="serviceId" value="702">
         </div>
-        <div class="form-group col">
-            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่เข้าเงื่อนไขใดๆ):</label>
-            <input type="number" id="defaultViews" value="10000" placeholder="เช่น 10000">
+        <div style="flex:1;">
+            <label>📊 ยอดวิวเริ่มต้น (หากระบบดึงข้อมูลหลุด):</label>
+            <input type="number" id="defaultViews" value="10000">
         </div>
     </div>
 
-    <!-- 🔥 ส่วนตั้งค่ากฎเกณฑ์แฮชแท็กหรือชื่อแอคเคาท์ ยืดหยุ่นปรับเปลี่ยนได้ตลอดเวลา -->
-    <div class="form-group">
-        <label for="tagRules">⚙️ ตั้งค่าเกณฑ์ยอดวิว (กำหนดคำคีย์เวิร์ด แฮชแท็ก หรือชื่อแอคเคาท์แยกตามวิว):</label>
-        <textarea id="tagRules" class="rules-area" placeholder="ใส่คำคีย์เวิร์ดคั่นด้วยเครื่องหมายจุลภาคตามด้วยจำนวนวิว"></textarea>
-        <div class="note">พิมพ์คีย์เวิร์ดที่ต้องการดักจับ ตามด้วยเครื่องหมายเครื่องหมายลูกศร <span class="highlight-note">-></span> แล้วตามด้วยยอดวิว (บรรทัดละ 1 กฎ)</div>
-    </div>
+    <label>1. วางลิงก์ URL TikTok เพียวๆ บรรทัดละ 1 ลิงก์:</label>
+    <textarea id="inputLinks" placeholder="https://www.tiktok.com/@user/video/7642935473500..."></textarea>
 
-    <div class="form-group">
-        <label for="inputData">1. วางลิงก์ URL TikTok หรือข้อความสังเขปตรงนี้:</label>
-        <textarea id="inputData" placeholder="วางลิงก์เพียวๆ ของแอคเคาท์ใหม่ๆ ลงมาได้เลยครับ..."></textarea>
-    </div>
-    
     <div class="btn-group">
-        <button onclick="convertData()">⚡ แปลงข้อมูลและวิเคราะห์ยอดวิวอัจฉริยะ</button>
+        <button onclick="startScrapingAndProcess()">🚀 เริ่มดึงข้อมูลจริงและคำนวณเกณฑ์</button>
     </div>
-    
-    <div class="form-group">
-        <label for="outputData">2. ผลลัพธ์รูปแบบที่ต้องการ (Format):</label>
-        <textarea id="outputData" readonly placeholder="ผลลัพธ์จะแสดงที่นี่..."></textarea>
-        <button class="copy-btn" onclick="copyToClipboard()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
-    </div>
+
+    <div id="statusLog" class="status-log" style="display:none;">กำลังประมวลผล...</div>
+
+    <label>2. ผลลัพธ์รูปแบบตารางสำเร็จรูป (Format):</label>
+    <textarea id="outputResult" readonly placeholder="ผลลัพธ์ เลขบริการ|ลิงก์|เป้าหมายเกณฑ์วิว จะแสดงที่นี่..."></textarea>
+    <button class="copy-btn" onclick="copyResult()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
 </div>
 
 <script>
-// ใส่เกณฑ์เริ่มต้นที่คุณใช้บ่อยไว้ให้ในระบบก่อนเพื่อให้เปิดมาใช้งานได้ทันที
-document.getElementById('tagRules').value = 
-`#RoVเป็นเกมตลก -> 6000\n` +
-`@601boq -> 8000\n` +
-`#rovth -> 10000\n` +
-`#trending -> 12000`;
+// ฐานข้อมูลเกณฑ์แท็กและยอดวิวเป้าหมายที่คุณให้มา
+const tagDatabase = [
+    { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: 6000 },
+    { tag: "#RoV #คลิปRoV #rovth", view: 6000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #rovth", view: 8000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #fpy", view: 8000 },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #ล่าเงินรางวัล #ไฮไลต์มันส์ๆ", view: 8000 },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #การจุติของไททัน #ArcaneBrawl", view: 8000 },
+    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #RoV5v5", view: 8000 },
+    { tag: "#RoV #rovth #RoVThailand", view: 10000 },
+    { tag: "#RoV #rovth #fpy", view: 10000 },
+    { tag: "#RoV #rovth #trending", view: 10000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #trending", view: 12000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #เล่นRoV #rovh", view: 12000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #RoVเกมภาพสวย", view: 12000 },
+    { tag: "#RoV #rovth #เล่นRoV", view: 12000 },
+    { tag: "#RoV #rovth #คลิปRoV", view: 8000 },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #Elimination", view: 8000 },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #FlowbornArmorTitan", view: 10000 },
+    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #ใส่นัวแฟมิลี่", view: 8000 },
+    { tag: "#RoV #AttackOnTitan #RoVxAOT #TitanFever #FortuneSurvival", view: 10000 },
+    { tag: "#RoV #RoVเป็นเกมตลก #ล็อกอินลุ้นสกินMystical", view: 8000 },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #รอบชิงชนะเลิศ", view: 10000 },
+    { tag: "#RoV #rovth #GodlikeCreatorCup #TheGodlikeJourney", view: 10000 }
+];
 
-function convertData() {
-    const input = document.getElementById('inputData').value;
-    const customServiceId = document.getElementById('customServiceId').value.trim();
-    const defaultViews = document.getElementById('defaultViews').value.trim() || '10000';
-    const rulesText = document.getElementById('tagRules').value;
+async function startScrapingAndProcess() {
+    const input = document.getElementById('inputLinks').value.trim();
+    const serviceId = document.getElementById('serviceId').value.trim();
+    const defaultViews = document.getElementById('defaultViews').value.trim();
+    const logDiv = document.getElementById('statusLog');
     
-    if (!input.trim()) {
-        alert('กรุณากรอกหรือวางข้อมูลก่อนครับ');
-        return;
-    }
+    if (!input) return alert('กรุณาวางลิงก์ก่อนครับ');
+    
+    const links = input.split('\n').map(l => l.trim()).filter(l => l !== '');
+    logDiv.style.display = 'block';
+    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มดึงข้อมูลสดจาก TikTok ทีละลิงก์...`;
 
-    // แปลง Text กฎเกณฑ์ให้กลายเป็น Array โครงสร้างข้อมูลเพื่อนำไปประมวลผล
-    let dynamicRules = [];
-    rulesText.split('\n').forEach(rLine => {
-        if (rLine.includes('->')) {
-            let parts = rLine.split('->');
-            dynamicRules.push({
-                keyword: parts[0].trim().toLowerCase(),
-                view: parts[1].trim().replace(/[^0-9]/g, '')
+    let finalFormats = [];
+
+    for (let i = 0; i < links.length; i++) {
+        let url = links[i];
+        logDiv.innerHTML = `⏳ [${i+1}/${links.length}] กำลังแกะข้อมูลลิงก์: ${url}`;
+
+        try {
+            // ยิงข้อมูลไปให้ Serverless Function หลังบ้านที่เราสร้างไว้ทำข้อมูล
+            const response = await fetch('/api/get-tiktok', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
             });
-        }
-    });
+            
+            const data = await response.json();
 
-    const lines = input.split('\n');
-    let result = [];
+            if (response.ok) {
+                let liveViews = data.views;
+                let description = data.description; // แฮชแท็กและข้อความของคลิปนั้น
+                let matchedTargetView = 0;
 
-    lines.forEach(line => {
-        if (line.trim() === '') return;
-
-        let serviceId = customServiceId || '702';
-        let url = '';
-        let views = '';
-
-        // 1. ค้นหาลิงก์ URL จากในบรรทัด
-        let columns = line.split('\t').map(col => col.trim());
-        let urlIndex = columns.findIndex(col => col.startsWith('http://') || col.startsWith('https://'));
-
-        if (urlIndex !== -1) {
-            url = columns[urlIndex];
-            if (urlIndex < columns.length - 1 && columns[urlIndex + 1] !== '') {
-                views = columns[urlIndex + 1].replace(/[^0-9]/g, '');
-            }
-        } else {
-            const urlRegex = /(https?:\/\/[^\s]+)/;
-            const foundUrl = line.match(urlRegex);
-            if (foundUrl) url = foundUrl[0];
-        }
-
-        // 2. ถ้าในตารางมีระบุยอดวิวมาอยู่แล้ว (เช่นระบุพ่วงท้ายมา) ให้ดึงค่านั้นก่อน
-        if (!views) {
-            const viewMatch = line.match(/[Vv]iew\s?([\d,]+)/);
-            if (viewMatch && viewMatch[1]) {
-                views = viewMatch[1].replace(/,/g, '');
-            }
-        }
-
-        // 3. 🔥 ระบบวิเคราะห์ยอดวิวแบบไดนามิก รองรับทุกแอคเคาท์ใหม่
-        if (!views) {
-            let matchedView = '';
-            for (let rule of dynamicRules) {
-                // ค้นหาคำคีย์เวิร์ดในบรรทัดนั้น (รวมถึงส่วนประกอบในตัว URL เองด้วย เช่นชื่อ @แอคเคาท์)
-                if (line.toLowerCase().includes(rule.keyword)) {
-                    matchedView = rule.view;
-                    break; // เจอเงื่อนไขแรกที่ตรงแล้วหยุดลูปทันที
+                // นำแฮชแท็กสดที่ได้จากหลังบ้าน ไปจับคู่เกณฑ์ SMM ค้นหาเป้าหมายวิวอัตโนมัติ
+                for (let item of tagDatabase) {
+                    let tags = item.tag.split(' ');
+                    let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
+                    if (isMatchAll) {
+                        matchedTargetView = item.view;
+                        break;
+                    }
                 }
+
+                // ถ้าจับเกณฑ์แท็กไม่เจอ จะใช้ยอดวิวเริ่มต้นที่กรอกไว้
+                let finalViewResult = matchedTargetView ? matchedTargetView : defaultViews;
+
+                // รวมร่าง Format สำเร็จรูป (เลขบริการ|ลิงก์|เกณฑ์วิวเป้าหมาย)
+                finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);
+            } else {
+                finalFormats.push(`${serviceId}|${url}|${defaultViews} (ดึงข้อมูลพลาด)`);
             }
-            views = matchedView ? matchedView : defaultViews;
+        } catch (err) {
+            finalFormats.push(`${serviceId}|${url}|${defaultViews} (เออร์เรอร์ระบบ)`);
         }
-
-        if (url) {
-            result.push(`${serviceId}|${url}|${views}`);
-        }
-    });
-
-    if (result.length === 0) {
-        alert('ไม่พบลิงก์ URL ในข้อมูลที่นำมาวางครับ');
-        return;
     }
 
-    document.getElementById('outputData').value = result.join('\n');
+    logDiv.innerHTML = `✅ ดึงข้อมูลเสร็จสิ้นครบทั้งหมด ${links.length} รายการแล้ว!`;
+    document.getElementById('outputResult').value = finalFormats.join('\n');
 }
 
-function copyToClipboard() {
-    const outputText = document.getElementById('outputData');
-    if (!outputText.value) {
-        alert('ไม่มีข้อมูลให้คัดลอกครับ');
-        return;
-    }
-    outputText.select();
-    outputText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    alert("คัดลอกข้อมูลเรียบร้อยแล้ว!");
+function copyResult() {
+    const out = document.getElementById('outputResult');
+    if (!out.value) return alert('ไม่มีข้อมูลให้คัดลอก');
+    out.select();
+    document.execCommand('copy');
+    alert('คัดลอกข้อความ Format เรียบร้อยแล้ว!');
 }
 </script>
 
