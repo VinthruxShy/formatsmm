@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คยอดวิวและแฮชแท็กอัตโนมัติ (v8.5)</title>
+    <title>ระบบเช็คยอดวิวและแฮชแท็กอัตโนมัติ (v8.6)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -22,7 +22,7 @@
 <body>
 
 <div class="container">
-    <h2>ระบบดึงข้อมูลสด GangSocial + แปลงรูปแบบตาราง (v8.5)</h2>
+    <h2>ระบบดึงข้อมูลสด GangSocial + แปลงรูปแบบตาราง (v8.6)</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -30,7 +30,7 @@
             <input type="text" id="serviceId" value="702">
         </div>
         <div style="flex:1;">
-            <label>📊 ยอดวิวเริ่มต้น (กรณีไม่มีข้อมูลในระบบ):</label>
+            <label>📊 ยอดวิวเริ่มต้น (กรณีระบบดึงหลุด):</label>
             <input type="number" id="defaultViews" value="10000">
         </div>
     </div>
@@ -82,13 +82,17 @@ async function startScrapingAndProcess() {
     const defaultViews = document.getElementById('defaultViews').value.trim();
     const logDiv = document.getElementById('statusLog');
     
-    if (!input) return alert('กรุณาวางลิงก์ก่อนครับ');
+    if (!input) {
+        alert('กรุณาวางลิงก์ก่อนครับ');
+        return;
+    }
     
     const links = input.split('\n').map(l => l.trim()).filter(l => l !== '');
     logDiv.style.display = 'block';
+    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
 
     let finalFormats = [];
-    const smartBackupViews = [6000, 8000, 10000, 12000]; // ชุดยอดวิวสำรองจากฐานข้อมูล SMMของคุณ
+    const smartBackupViews = [6000, 8000, 10000, 12000]; // ชุดยอดวิวสำรองจากฐานข้อมูล SMMของคุณ[cite: 1]
 
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
@@ -97,6 +101,7 @@ async function startScrapingAndProcess() {
         let finalViewResult = defaultViews;
 
         try {
+            // ยิงไปหาหลังบ้าน Vercel
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -121,11 +126,12 @@ async function startScrapingAndProcess() {
                     finalViewResult = matchedTargetView;
                 }
             } else {
-                // หาก API บล็อกดักจับดึงไม่ได้ ให้ใช้การคำนวณกระจายค่ายอดวิวตามฐานข้อมูลเพื่อความเนียน
+                // แผนสำรองกรณี API บล็อก: สุ่มสลับตัวเลขจากตารางคุณเพื่อให้ได้รูปแบบครบ[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
         } catch (err) {
+            // กรณีระบบขัดข้อง
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
             finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
