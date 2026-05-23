@@ -2,6 +2,7 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
+    // ปลดล็อก CORS ให้หน้าเว็บเดิมของคุณคุยกับหลังบ้านได้ปกติ ไม่ติดบล็อกความปลอดภัย
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -17,29 +18,36 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
         }
 
+        // ยิงคำสั่ง GET ไปหาลิงก์ตรงตามสเปก curl จริงของคุณ
         const options = {
             method: 'GET',
             url: 'https://tiktok-scraper7.p.rapidapi.com/',
-            params: { url: url, hd: '1' },
+            params: {
+                url: url,
+                hd: '1'
+            },
             headers: {
                 'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
                 'x-rapidapi-key': 'ae5e0d0718msha21c8c8facfcb43p18db91jsn57dd5d660839'
-            },
-            timeout: 4000 // หาก API ดึงข้อมูลช้าเกิน 4 วินาที ให้ตัดเข้าแผนสำรองหน้าเว็บทันที
+            }
         };
 
         const response = await axios.request(options);
         
+        // 🔥 จุดที่ซ่อม: แกะข้อมูลให้ตรงตามล็อกของตัว TikTok Scraper ตัวนี้เป๊ะๆ
         if (response.data && response.data.data) {
+            const videoInfo = response.data.data;
+            
+            // ส่งค่ากลับไปในชื่อตัวแปรที่หน้าเว็บเดิมของคุณรอรับอยู่ (views และ description)
             return res.status(200).json({
-                views: response.data.data.play_count || 0
+                views: videoInfo.play_count || 0,        // ยอดวิวสดจริงของคลิปนั้น
+                description: videoInfo.title || ""       // ข้อความหัวคลิปและแฮชแท็ก
             });
         } else {
-            return res.status(200).json({ views: 0 }); // ส่ง 0 เพื่อให้หน้าบ้านใช้แผนสำรอง
+            return res.status(400).json({ error: 'โครงสร้างข้อมูลจาก API ไม่ถูกต้อง' });
         }
 
     } catch (error) {
-        // หาก API บล็อกหรือโควตาหมด ส่งยอดวิว 0 เพื่อให้หน้าบ้านทำงานต่อได้ทันที
-        return res.status(200).json({ views: 0 });
+        return res.status(500).json({ error: 'ระบบหลังบ้านขัดข้อง: ' + error.message });
     }
 };
