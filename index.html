@@ -40,11 +40,9 @@
         
         .badge-clip { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .badge-view { background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .badge-skip { background: #fef9e7; color: #b7950b; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .badge-delete { background: #fadbd8; color: #78281f; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         
-        /* สไตล์ปุ่มกดรายแถวในตาราง Layer */
-        .action-btn { padding: 6px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; transition: all 0.1s ease; margin-right: 5px; box-shadow: none; display: inline-block; }
+        .action-btn { padding: 6px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; transition: all 0.1s ease; margin-right: 5px; display: inline-block; }
         .btn-table-skip { background-color: #f39c12; color: white; }
         .btn-table-skip:hover { background-color: #d35400; }
         .btn-table-delete { background-color: #e74c3c; color: white; }
@@ -69,12 +67,12 @@
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <label>🟡 รายการข้ามเกณฑ์ (คีย์ออโต้จากการกดปุ่ม):</label>
-            <input type="text" id="skipClips" value="" placeholder="เช่น 15">
+            <label>🟡 รายการที่กดข้ามเกณฑ์ไปแล้ว:</label>
+            <input type="text" id="skipClips" value="" placeholder="กดจากตารางได้เลย">
         </div>
         <div class="setup-item">
-            <label>🔴 รายการลบลิงก์ (คีย์ออโต้จากการกดปุ่ม):</label>
-            <input type="text" id="deleteClips" value="" placeholder="เช่น 18">
+            <label>🔴 รายการที่กดลบลิงก์ไปแล้ว:</label>
+            <input type="text" id="deleteClips" value="" placeholder="กดจากตารางได้เลย">
         </div>
         <div class="setup-item">
             <label>📊 วิวมาตรฐาน (กรณีเกินตาราง):</label>
@@ -91,7 +89,6 @@
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
 
-    <!-- 📊 เลเยอร์ตารางแยกพร้อมปุ่มกดจัดการรายแถวตามใจสั่ง -->
     <div id="tableLayerContainer" style="display: none;">
         <label>👀 ตารางตรวจสอบเลเยอร์ (Preview Layer): สามารถกด ยกเว้น หรือ ลบ จากตรงนี้ได้เลย!</label>
         <table class="layer-table">
@@ -170,12 +167,15 @@ function processFlexibleFormat() {
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ ตรรกะระบุตัวตนคลิปจากล่างขึ้นบน โดยหลบตัวที่สั่งลบทิ้ง (Delete)
+    // ⚡ [ตรรกะหัวใจใหม่ตามใจสั่ง] 
+    // ยุบรวมเงื่อนไขทั้ง "ลบ (Delete)" และ "ยกเว้น (Skip)" มารันตัวเลขคัดกรองจากล่างขึ้นบนพร้อมกันตั้งแต่ก้าวแรก
     let clipAssignments = new Array(links.length);
     let currentClipNumber = 1;
 
     for (let i = links.length - 1; i >= 0; i--) {
-        while (deletedClips.includes(currentClipNumber)) {
+        // ถ้าระบบวิ่งถอยหลังมาเจอตัวเลขที่โดนสั่ง "ลบ" หรือสั่ง "ยกเว้นข้ามเลข" 
+        // ระบบจะทำการปัดเลข currentClipNumber ขยับผ่านไปข้างหน้าทันที เพื่อให้เลขแผงบนถูกดันขึ้นตามที่พี่ต้องการ
+        while (deletedClips.includes(currentClipNumber) || skippedClips.includes(currentClipNumber)) {
             currentClipNumber++;
         }
         clipAssignments[i] = currentClipNumber;
@@ -188,20 +188,19 @@ function processFlexibleFormat() {
         let assignedClipNo = clipAssignments[i];
         let url = links[i];
 
-        // ตัดทิ้งถ้าต่ำกว่าเกณฑ์เริ่มทำของพี่
+        // ตัดลิงก์ขยะทิ้งถ้าต่ำกว่าเกณฑ์กดเริ่มของพี่
         if (assignedClipNo < startClipNo) {
             continue; 
         }
 
-        // กรณีคลิปโดนสั่งลบลิงก์ (Delete)
+        // 🔴 กรณีแถวที่โดนสั่งลบลิงก์ (Delete)
         if (deletedClips.includes(assignedClipNo)) {
             tableRowsHtml += `
                 <tr style="background-color: #fdf2f2;">
                     <td><span class="badge-delete">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
                     <td style="word-break: break-all; color: #99a3a4; text-decoration: line-through;">${url}</td>
-                    <td><span class="badge-delete">❌ ลบลิงก์นี้ออกแล้ว</span></td>
+                    <td><span class="badge-delete">🗑️ ลบลิงก์นี้ออกแล้ว</span></td>
                     <td>
-                        <!-- ปุ่มกู้คืนลิงก์กรณีเปลี่ยนใจ -->
                         <button class="action-btn" style="background-color:#7f8c8d; color:white;" onclick="removeTargetFromInput('deleteClips', ${assignedClipNo})">🔄 กู้คืน</button>
                     </td>
                 </tr>
@@ -211,49 +210,29 @@ function processFlexibleFormat() {
 
         activeCount++;
         let targetView = defaultViews;
-        let isSkippedMode = false;
+        let sequenceIndex = assignedClipNo - 1; // ลำดับตรงล็อกเสร็จสรรพเพราะตรรกะบนดันแผงให้แล้ว
 
-        // กรณีคลิปโดนสั่งยกเว้นเกณฑ์ (Skip) -> จะกระโดดข้ามไปดึงวิวลำดับถัดไปมาใช้แทน
-        let finalCheckIndex = assignedClipNo;
-        if (skippedClips.includes(assignedClipNo)) {
-            isSkippedMode = true;
-            finalCheckIndex = assignedClipNo + 1; // เด้งไปเอาเกณฑ์ของคลิปถัดไปมาสวมแทนทันที!
-        }
-
-        let sequenceIndex = finalCheckIndex - 1;
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
+        // เติมเข้าช่อง Format ทันที
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // สร้างปุ่มกดจัดการฝังตัวเลขรายแถวส่งเข้าไปในตาราง Preview
+        // ปุ่มกดรายแถวอัปเดตเวอร์ชันใหม่
         const actionButtons = `
             <button class="action-btn btn-table-skip" onclick="addTargetToInput('skipClips', ${assignedClipNo})">🟡 ยกเว้น</button>
             <button class="action-btn btn-table-delete" onclick="addTargetToInput('deleteClips', ${assignedClipNo})">🔴 ลบ</button>
         `;
 
-        if (isSkippedMode) {
-            tableRowsHtml += `
-                <tr style="background-color: #fefde8;">
-                    <td><span class="badge-skip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
-                    <td style="word-break: break-all; color: #b7950b;">${url}</td>
-                    <td><span class="badge-skip">🟡 ข้าม (ใช้วิิตัวถัดไป -> ${Number(targetView).toLocaleString()} วิว)</span></td>
-                    <td>
-                        <button class="action-btn" style="background-color:#7f8c8d; color:white;" onclick="removeTargetFromInput('skipClips', ${assignedClipNo})">🔄 เลิกข้าม</button>
-                    </td>
-                </tr>
-            `;
-        } else {
-            tableRowsHtml += `
-                <tr>
-                    <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
-                    <td style="word-break: break-all; color: #1a73e8;">${url}</td>
-                    <td><span class="badge-view">${Number(targetView).toLocaleString()} วิว</span></td>
-                    <td>${actionButtons}</td>
-                </tr>
-            `;
-        }
+        tableRowsHtml += `
+            <tr>
+                <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
+                <td style="word-break: break-all; color: #1a73e8;">${url}</td>
+                <td><span class="badge-view">${Number(targetView).toLocaleString()} วิว</span></td>
+                <td>${actionButtons}</td>
+            </tr>
+        `;
     }
 
     outputResult.value = finalFormats.join('\n');
@@ -261,10 +240,9 @@ function processFlexibleFormat() {
     tableContainer.style.display = 'block';
 
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `✅ ประมวลผลเลเยอร์เรียบร้อยแล้ว รวมลิงก์พร้อมใช้งานทั้งหมด ${activeCount} รายการ`;
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! ดันลำดับแผงตัวเลขขยับตามกันเรียบร้อย เหลือส่งงาน ${activeCount} รายการ`;
 }
 
-// ⚡ ฟังก์ชันสำหรับส่งหมายเลขคลิปรายแถวขึ้นไปบันทึกในช่องด้านบนและคำนวณใหม่ทันที
 function addTargetToInput(inputId, clipNo) {
     const inputElement = document.getElementById(inputId);
     let currentValues = inputElement.value.trim().split(',').map(v => v.trim()).filter(v => v !== '');
@@ -273,10 +251,9 @@ function addTargetToInput(inputId, clipNo) {
         currentValues.push(String(clipNo));
         inputElement.value = currentValues.join(',');
     }
-    processFlexibleFormat(); // สั่งรันคำนวณดีดเลเยอร์ลิงก์ใหม่ในเสี้ยววินาที
+    processFlexibleFormat(); // ดันแผงคำนวณใหม่ในเสี้ยววินาทีทันทีหลังกดปุ่ม
 }
 
-// ฟังก์ชันสำหรับถอดหมายเลขออกเมื่อกดยกเลิก
 function removeTargetFromInput(inputId, clipNo) {
     const inputElement = document.getElementById(inputId);
     let currentValues = inputElement.value.trim().split(',').map(v => v.trim()).filter(v => v !== '');
