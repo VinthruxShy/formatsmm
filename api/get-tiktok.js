@@ -2,32 +2,29 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // เปิดสิทธิ์ CORS ให้หน้าเว็บ Frontend ดึงข้อมูลได้สะดวก
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    // ตั้งค่าหัวข้อเพื่ออนุญาตให้ทุกบราวเซอร์เข้าถึงได้โดยไม่ติดบล็อกความปลอดภัย
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Content-Type');
 
+    // จัดการกรณีบราวเซอร์ตรวจสอบสิทธิ์ (Preflight request)
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'อนุญาตเฉพาะ Method POST เท่านั้นครับ' });
-    }
-
-    const { url } = req.body;
-    if (!url) {
-        return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
+        res.status(200).end();
+        return;
     }
 
     try {
+        const { url } = req.body;
+        if (!url) {
+            return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
+        }
+
         const options = {
             method: 'POST',
             url: 'https://tiktok-scraper7.p.rapidapi.com/api/video/info', 
             headers: {
                 'content-type': 'application/x-www-form-urlencoded',
-                // 🔒 คีย์ของคุณจะถูกเก็บไว้ตรงนี้ ปลอดภัย 100% ไม่มีใครแอบดูจากหน้าเว็บได้
                 'X-RapidAPI-Key': 'ae5e0d0718msha21c8cfacfcb43p18db91jsn57dd5d660839',
                 'X-RapidAPI-Host': 'tiktok-scraper7.p.rapidapi.com'
             },
@@ -37,16 +34,15 @@ module.exports = async (req, res) => {
         const response = await axios.request(options);
         
         if (response.data && response.data.data) {
-            const videoInfo = response.data.data;
             return res.status(200).json({
-                views: videoInfo.play_count || 0,
-                description: videoInfo.title || ""
+                views: response.data.data.play_count || 0,
+                description: response.data.data.title || ""
             });
-        } else {
-            return res.status(400).json({ error: 'โครงสร้างข้อมูลผู้ให้บริการไม่ถูกต้อง' });
         }
+        
+        return res.status(400).json({ error: 'โครงสร้างข้อมูลผิดพลาด' });
 
     } catch (error) {
-        return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์หลักได้' });
+        return res.status(500).json({ error: 'ติดต่อ API หลักไม่สำเร็จ' });
     }
 };
