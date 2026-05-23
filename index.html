@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v12.5)</title>
+    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v13.0)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -26,7 +26,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         button:hover { background-color: #1557b0; }
-        button:active { transform: scale(0.96); } /* ปุ่มขยับแอนิเมชันเมื่อกดคลิก */
+        button:active { transform: scale(0.96); }
         
         .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 14px; font-weight: bold; color: #1a73e8; }
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
@@ -36,7 +36,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (เวอร์ชันทดสอบระบบหลังบ้าน v12.5)</h2>
+    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (v13.0 สมบูรณ์)</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -64,7 +64,7 @@
 </div>
 
 <script>
-// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ
+// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ[cite: 1]
 const tagDatabase = [
     { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
     { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
@@ -108,9 +108,8 @@ async function startTeamScraping() {
         return;
     }
 
-    // ⚡ บังคับให้กล่องสถานะแสดงข้อความทันทีเมื่อกด เพื่อให้หน้าเว็บขยับตอบรับผู้ใช้ก่อนส่งคำสั่งไปหลังบ้าน
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ รับข้อมูลสำเร็จ: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเตรียมส่งข้อมูลเข้าสู่ระบบหลังบ้าน...`;
+    logDiv.innerHTML = `⏳ รับข้อมูลสำเร็จ: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
     outputResult.value = '';
 
     let finalFormats = [];
@@ -119,13 +118,13 @@ async function startTeamScraping() {
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
         
-        // รายงานความคืบหน้าแบบวินาทีต่อวินาทีบนหน้าจอ
+        // แสดงสถานะนับจำนวนบรรทัดเรียลไทม์
         logDiv.innerHTML = `⏳ กำลังแกะข้อมูลลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
 
         let finalViewResult = defaultViews;
 
         try {
-            // ส่งคำขอไปหาเซิร์ฟเวอร์หลังบ้านตัวเองบน Vercel
+            // ยิงไปหาเซิร์ฟเวอร์หลังบ้านตัวเองบน Vercel
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -138,7 +137,7 @@ async function startTeamScraping() {
                 let description = responseData.description || ""; 
                 let matchedTargetView = "";
 
-                // นำแฮชแท็กจริงที่หลังบ้านไปสแกนมาให้ มาจับคู่เพื่อดึงยอดวิวตาราง SMM
+                // สแกนแฮชแท็กจริงมาตัดเกณฑ์ SMM
                 for (let item of tagDatabase) {
                     let tags = item.tag.split(' ');
                     let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
@@ -152,12 +151,12 @@ async function startTeamScraping() {
                     finalViewResult = matchedTargetView;
                 }
             } else {
-                // แผนสำรองดึงสถิติตารางหากเซิร์ฟเวอร์ตอบกลับผิดพลาด[cite: 1]
+                // แผนสำรองสุ่มกระจายค่าสถิติตารางหากเครือข่ายบกพร่อง[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
         } catch (err) {
-            // แผนสำรองเครือข่ายขัดข้อง[cite: 1]
+            // แผนสำรองระบบค้าง[cite: 1]
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
             finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
@@ -166,7 +165,7 @@ async function startTeamScraping() {
         finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
     }
 
-    logDiv.innerHTML = `✅ ระบบดึงข้อมูลสดและจัดสรรรูปแบบตารางเสร็จเรียบร้อยแล้ว จำนวน ${links.length} บรรทัด!`;
+    logDiv.innerHTML = `✅ ประมวลผลและกระจายเกณฑ์เสร็จเรียบร้อยแล้ว จำนวน ${links.length} รายการ!`;
     outputResult.value = finalFormats.join('\n');
 }
 
