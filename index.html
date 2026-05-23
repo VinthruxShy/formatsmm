@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v13.0)</title>
+    <title>เว็บ format SMM</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -36,7 +36,8 @@
 <body>
 
 <div class="container">
-    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (v13.0 สมบูรณ์)</h2>
+    <!-- เปลี่ยนชื่อหัวข้อให้สั้นลงตามความต้องการของคุณเรียบร้อยครับ -->
+    <h2>เว็บ format SMM</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -50,7 +51,7 @@
     </div>
 
     <label>1. วางลิงก์ URL TikTok เพียวๆ บรรทัดละ 1 ลิงก์:</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ที่ก๊อปปี้มาลงที่นี่..."></textarea>
+    <textarea id="inputLinks" placeholder="วางลิงก์ที่นี่..."></textarea>
 
     <div class="btn-group">
         <button type="button" onclick="startTeamScraping()">⚡ เริ่มดึงข้อมูลจริงและคำนวณเกณฑ์</button>
@@ -117,14 +118,10 @@ async function startTeamScraping() {
 
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
-        
-        // แสดงสถานะนับจำนวนบรรทัดเรียลไทม์
         logDiv.innerHTML = `⏳ กำลังแกะข้อมูลลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
-
         let finalViewResult = defaultViews;
 
         try {
-            // ยิงไปหาเซิร์ฟเวอร์หลังบ้านตัวเองบน Vercel
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -137,7 +134,6 @@ async function startTeamScraping() {
                 let description = responseData.description || ""; 
                 let matchedTargetView = "";
 
-                // สแกนแฮชแท็กจริงมาตัดเกณฑ์ SMM
                 for (let item of tagDatabase) {
                     let tags = item.tag.split(' ');
                     let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
@@ -146,26 +142,22 @@ async function startTeamScraping() {
                         break;
                     }
                 }
-                
                 if (matchedTargetView) {
                     finalViewResult = matchedTargetView;
                 }
             } else {
-                // แผนสำรองสุ่มกระจายค่าสถิติตารางหากเครือข่ายบกพร่อง[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
-                finalViewResult = smartBackupViews[randomIndex];[cite: 1]
+                finalViewResult = smartBackupViews[randomIndex]; //[cite: 1]
             }
         } catch (err) {
-            // แผนสำรองระบบค้าง[cite: 1]
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
-            finalViewResult = smartBackupViews[randomIndex];[cite: 1]
+            finalViewResult = smartBackupViews[randomIndex]; //[cite: 1]
         }
 
-        // ประกอบร่าง Format[cite: 1]
-        finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
+        finalFormats.push(`${serviceId}|${url}|${finalViewResult}`); //[cite: 1]
     }
 
-    logDiv.innerHTML = `✅ ประมวลผลและกระจายเกณฑ์เสร็จเรียบร้อยแล้ว จำนวน ${links.length} รายการ!`;
+    logDiv.innerHTML = `✅ ประมวลผลและจัดสรรรูปแบบตารางเสร็จเรียบร้อยแล้ว จำนวน ${links.length} รายการ!`;
     outputResult.value = finalFormats.join('\n');
 }
 
