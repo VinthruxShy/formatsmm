@@ -39,6 +39,7 @@
         .layer-table tr:hover { background-color: #f8f9fa; }
         .badge-clip { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .badge-view { background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-delete { background: #fadbd8; color: #78281f; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
         button.copy-btn:hover { background-color: #2b8c44; }
@@ -55,12 +56,13 @@
             <input type="text" id="serviceId" value="702">
         </div>
         <div class="setup-item">
-            <label>🎬 เลือกตัดข้ามเพื่อเริ่มที่คลิปหมายเลข:</label>
+            <label>🎬 เลือกจุดตัดเพื่อเริ่มงานที่คลิปหมายเลข:</label>
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <label>❌ ยกเว้นคลิปที่ไม่ลงเพิ่มเติม (ใส่เลขแยกด้วยจุลภาค):</label>
-            <input type="text" id="skipClips" value="" placeholder="เช่น 15">
+            <!-- ⚡ ช่องระบบทำลายล้างลิงก์: ใส่ตัวเลขคลิปที่พี่ไม่ได้ลงและต้องการลบลิงก์นั้นทิ้งไปเลย -->
+            <label>🗑️ สั่งลบลิงก์ของคลิปหมายเลข (ใส่เลขแยกด้วยจุลภาค):</label>
+            <input type="text" id="deleteClips" value="" placeholder="เช่น 15">
         </div>
         <div class="setup-item">
             <label>📊 วิวมาตรฐาน (กรณีเกินตาราง 22 คลิป):</label>
@@ -68,11 +70,11 @@
         </div>
     </div>
 
-    <label>1. วางลิงก์ URL TikTok ทั้งหมด (ระบบจะตัดอันที่เก่ากว่าตัวระบุทิ้งให้อัตโนมัติ):</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ยาวพรืดได้เลย..."></textarea>
+    <label>1. วางลิงก์ URL TikTok ทั้งหมด (ระบบจะตัดอันที่เก่าออก และลบบรรทัดคลิปที่ไม่ต้องการให้เอง):</label>
+    <textarea id="inputLinks" placeholder="วางลิงก์ยาวพรืดจากคลิปที่ 1 ถึงล่าสุดได้เลย..."></textarea>
 
     <div class="btn-group">
-        <button type="button" onclick="formatWithAutoTrim()">⚡ เริ่มกรองลิงก์และจัดรูปแบบเลเยอร์</button>
+        <button type="button" onclick="formatWithLinkDeletion()">⚡ เริ่มประมวลผลระบบลบลิงก์และคัดกรองเลเยอร์</button>
     </div>
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
@@ -84,7 +86,7 @@
                 <tr>
                     <th style="width: 15%;">ลำดับในตาราง</th>
                     <th>ลิงก์วิดีโอ TikTok ของพี่</th>
-                    <th style="width: 20%;">ยอดวิวที่จัดสรรให้</th>
+                    <th style="width: 20%;">สถานะ / ยอดวิวที่จัดสรร</th>
                 </tr>
             </thead>
             <tbody id="layerTableBody">
@@ -124,12 +126,12 @@ const viewSequenceTable = [
     "10000"  // คลิปที่ 22
 ];
 
-function formatWithAutoTrim() {
+function formatWithLinkDeletion() {
     const logDiv = document.getElementById('statusLog');
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
     const startClipNo = parseInt(document.getElementById('startClipNo').value.trim()) || 1;
-    const skipClipsInput = document.getElementById('skipClips').value.trim();
+    const deleteClipsInput = document.getElementById('deleteClips').value.trim();
     const defaultViews = document.getElementById('defaultViews').value.trim();
     const outputResult = document.getElementById('outputResult');
     const tableBody = document.getElementById('layerTableBody');
@@ -146,8 +148,8 @@ function formatWithAutoTrim() {
         return;
     }
 
-    // แกะหมายเลขคลิปที่สั่งข้าม
-    const skippedClips = skipClipsInput.split(',')
+    // แปลงรายชื่อคลิปที่สั่งลบลิงก์ให้เป็นตัวเลขในกล่อง Array
+    const deletedClips = deleteClipsInput.split(',')
         .map(item => parseInt(item.trim()))
         .filter(item => !isNaN(item));
 
@@ -155,43 +157,54 @@ function formatWithAutoTrim() {
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ [ซ่อมแซมจุดบั๊ก] ตรรกะการรันนับแถวแบบเคลียร์ค่าเคลียร์ล็อก 100%
+    // ⚡ [ตรรกะระดับโปร] รันเลขคลิปตั้งแต่ 1 จากล่างขึ้นบนตามปกติก่อน เพื่อระบุตัวตนดั้งเดิมของทุกลิงก์
     let clipAssignments = new Array(links.length);
     let currentClipNumber = 1;
 
-    // วนรอบแรกเพื่อจัดเรียงหมายเลขคลิปที่แท้จริงจากล่างขึ้นบน โดยหลบตัวที่สั่งข้ามอย่างถูกต้อง
     for (let i = links.length - 1; i >= 0; i--) {
-        while (skippedClips.includes(currentClipNumber)) {
-            currentClipNumber++;
-        }
         clipAssignments[i] = currentClipNumber;
         currentClipNumber++;
     }
 
-    // วนรอบสองเพื่อสกรีนคัดเฉพาะแถวที่เท่ากับหรือมากกว่าจุดที่พี่สั่งเริ่มทำ (startClipNo)
-    let activeCount = 0;
+    let processedCount = 0;
+
+    // วนลูปจากบนลงล่างเพื่อคัดกรองและประมวลผลขั้นสุดท้าย
     for (let i = 0; i < links.length; i++) {
         let assignedClipNo = clipAssignments[i];
-        
-        // กรองทิ้งทันทีหากลำดับคลิปน้อยกว่าเกณฑ์เริ่มต้น
+        let url = links[i];
+
+        // 🛑 ดักล็อกช่องที่ 1: ถ้าเป็นลิงก์ที่เก่ากว่าจุดเริ่มต้น (เช่น ต่ำกว่าคลิป 16) ตัดทิ้งทันที
         if (assignedClipNo < startClipNo) {
             continue; 
         }
 
-        activeCount++;
-        let url = links[i];
+        // 🗑️ ดักล็อกช่องที่ 2 (ระบบลบลิงก์ตามสั่งของพี่): 
+        // ถ้าเลขคลิปของลิงก์นี้ตรงกับตัวที่พี่สั่งลบ (เช่น คลิปที่ 15) ระบบจะเตะลิงก์นี้ทิ้งทันที! ไม่เอาลงช่อง Format
+        if (deletedClips.includes(assignedClipNo)) {
+            // โชว์ในตารางเลเยอร์สีแดงให้เห็นชัดๆ ว่าลิงก์แถวนี้โดนสั่งลบทำลายทิ้งไปเรียบร้อยแล้ว
+            tableRowsHtml += `
+                <tr style="background-color: #fdf2f2;">
+                    <td><span class="badge-delete">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
+                    <td style="word-break: break-all; color: #99a3a4; text-decoration: line-through;">${url}</td>
+                    <td><span class="badge-delete">❌ ลบลิงก์นี้ออกแล้ว</span></td>
+                </tr>
+            `;
+            continue; 
+        }
+
+        // หากผ่านด่านมาได้ ให้นำมาจับคู่วิวดั้งเดิมในตารางตามตำแหน่งดัชนี
+        processedCount++;
         let sequenceIndex = assignedClipNo - 1;
         let targetView = defaultViews;
 
-        // ดึงยอดวิวจากตาราง 22 คลิป
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // ประกอบร่างข้อมูล Format ส่งงาน
+        // เติมข้อมูลลงช่อง Format ส่งงาน
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // ดันแถวข้อมูลเข้าตารางเลเยอร์ตรวจงาน
+        // ฉีดลงเลเยอร์ตารางเช็คงานปกติ
         tableRowsHtml += `
             <tr>
                 <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
@@ -207,7 +220,7 @@ function formatWithAutoTrim() {
     tableContainer.style.display = 'block';
 
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `✅ แก้ไขบั๊กเรียบร้อย! แสดงผลตั้งแต่คลิปที่ ${startClipNo} ไปจนถึงคลิปที่จบจริง รวมทั้งหมด ${activeCount} รายการ`;
+    logDiv.innerHTML = `✅ ระบบกรองข้อมูลขั้นสูงสุดเสร็จสิ้น! ลบลิงก์ขยะออกตามสั่ง และจัดรูปแบบ Format ตั้งแต่คลิปที่ ${startClipNo} เรียบร้อย รวมเหลือทำงานทั้งหมด ${processedCount} รายการ`;
 }
 
 function copyResult() {
