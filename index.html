@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v11.5)</title>
+    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v12.0)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -26,7 +26,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         button:hover { background-color: #1557b0; }
-        button:active { transform: scale(0.97); } /* ให้ปุ่มยุบตัวตอบสนองทันทีที่กด */
+        button:active { transform: scale(0.97); }
         
         .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 14px; font-weight: bold; color: #1a73e8; }
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
@@ -36,7 +36,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (สำหรับใช้งานร่วมกัน)</h2>
+    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (เวอร์ชันแก้ไขปุ่มค้าง v12.0)</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -64,7 +64,7 @@
 </div>
 
 <script>
-// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ
+// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ[cite: 1]
 const tagDatabase = [
     { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
     { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
@@ -108,10 +108,10 @@ async function startTeamScraping() {
         return;
     }
 
-    // 🔥 บังคับเปิดกล่องโชว์สถานะทันทีตั้งแต่เสี้ยววินาทีแรกที่กดปุ่ม เพื่อตอบสนองผู้ใช้
+    // สั่งให้กล่องสถานะแสดงผลทันทีที่คลิก เพื่อตัดปัญหาปุ่มนิ่งเงียบ
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ ระบบตอบสนองแล้ว: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
-    outputResult.value = ''; // ล้างช่องผลลัพธ์เก่าออกก่อน
+    logDiv.innerHTML = `⏳ เริ่มทำงาน: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
+    outputResult.value = '';
 
     let finalFormats = [];
     const smartBackupViews = ["6000", "8000", "10000", "12000"];[cite: 1]
@@ -119,12 +119,13 @@ async function startTeamScraping() {
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
         
-        // 🔥 แสดงข้อความรายงานตัวเลขแถวแบบเรียลไทม์บนหน้าเว็บ
-        logDiv.innerHTML = `⏳ กำลังดึงข้อมูลและแกะแท็กลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
+        // รายงานสถานะตัวเลขวิ่งทีละแถวเรียลไทม์
+        logDiv.innerHTML = `⏳ กำลังประมวลผลลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
 
         let finalViewResult = defaultViews;
 
         try {
+            // ยิงไปหาหลังบ้านตัวเอง (คุยในบ้านตัวเอง บราวเซอร์จะไม่บล็อก)
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -133,10 +134,11 @@ async function startTeamScraping() {
 
             const responseData = await response.json();
 
-            if (response.ok && responseData && responseData.description) {
-                let description = responseData.description; 
+            if (response.ok && responseData && responseData.views) {
+                let description = responseData.description || ""; 
                 let matchedTargetView = "";
 
+                // ค้นหาเกณฑ์ตารางตามแฮชแท็กจริงที่หลังบ้านแกะมาให้
                 for (let item of tagDatabase) {
                     let tags = item.tag.split(' ');
                     let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
@@ -150,14 +152,17 @@ async function startTeamScraping() {
                     finalViewResult = matchedTargetView;
                 }
             } else {
+                // แผนสำรองสุ่มค่าสถิติตารางหากดึงข้อมูลไม่ได้[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
         } catch (err) {
+            // แผนสำรองกรณีเครือข่ายขัดข้อง[cite: 1]
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
             finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
 
+        // จัดรูปแบบ Format[cite: 1]
         finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
     }
 
