@@ -1,15 +1,17 @@
 // api/get-tiktok.js
-const axios = require('axios');
-
 module.exports = async (req, res) => {
-    // ปลดล็อก CORS ดักหน้าหลังบ้าน เพื่อให้เว็บบราวเซอร์ยอมปล่อยผ่าน
+    // ปลดล็อกระบบความปลอดภัยเพื่อให้หน้าบ้านคุยกับหลังบ้านได้ไร้รอยต่อ
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'อนุญาตเฉพาะ Method POST เท่านั้นครับ' });
     }
 
     try {
@@ -18,30 +20,29 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'กรุณาส่งลิงก์ URL มาด้วยครับ' });
         }
 
-        // หลังบ้านเป็นคนยิงไปหา RapidAPI เอง บราวเซอร์จะไม่บล็อก
-        const options = {
+        // ยิงไปหา RapidAPI ด้วยคำสั่ง fetch มาตรฐาน (ตัดปัญหาโค้ดพังเงียบ)
+        const response = await fetch('https://tiktok-scraper7.p.rapidapi.com/api/video/info', {
             method: 'POST',
-            url: 'https://tiktok-scraper7.p.rapidapi.com/api/video/info', 
             headers: {
                 'content-type': 'application/x-www-form-urlencoded',
                 'X-RapidAPI-Key': 'ae5e0d0718msha21c8cfacfcb43p18db91jsn57dd5d660839',
                 'X-RapidAPI-Host': 'tiktok-scraper7.p.rapidapi.com'
             },
-            data: new URLSearchParams({ url: url, hd: '1' })
-        };
+            body: new URLSearchParams({ url: url, hd: '1' })
+        });
 
-        const response = await axios.request(options);
+        const responseData = await response.json();
         
-        if (response.data && response.data.data) {
+        if (responseData && responseData.data) {
             return res.status(200).json({
-                views: response.data.data.play_count || 0,
-                description: response.data.data.title || ""
+                views: responseData.data.play_count || 0,
+                description: responseData.data.title || ""
             });
         }
         
-        return res.status(400).json({ error: 'โครงสร้างข้อมูลผิดพลาด' });
+        return res.status(400).json({ error: 'โครงสร้างข้อมูลผู้ให้บริการไม่ถูกต้อง' });
 
     } catch (error) {
-        return res.status(500).json({ error: 'ติดต่อ API หลักไม่สำเร็จ' });
+        return res.status(500).json({ error: 'เซิร์ฟเวอร์หลังบ้านทำงานขัดข้อง: ' + error.message });
     }
 };
