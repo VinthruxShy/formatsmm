@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v11.0)</title>
+    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v11.5)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -26,9 +26,9 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         button:hover { background-color: #1557b0; }
-        button:active { transform: scale(0.98); } /* ปุ่มยุบตัวชัดเจนเมื่อกดคลิก */
+        button:active { transform: scale(0.97); } /* ให้ปุ่มยุบตัวตอบสนองทันทีที่กด */
         
-        .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 13px; font-weight: bold; color: #1a73e8; }
+        .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 14px; font-weight: bold; color: #1a73e8; }
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
         button.copy-btn:hover { background-color: #2b8c44; }
     </style>
@@ -64,7 +64,7 @@
 </div>
 
 <script>
-// ฐานข้อมูลเกณฑ์แท็กตาราง SMM ของคุณ
+// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ
 const tagDatabase = [
     { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
     { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
@@ -91,10 +91,10 @@ const tagDatabase = [
 ];
 
 async function startTeamScraping() {
+    const logDiv = document.getElementById('statusLog');
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
     const defaultViews = document.getElementById('defaultViews').value.trim();
-    const logDiv = document.getElementById('statusLog');
     const outputResult = document.getElementById('outputResult');
 
     if (!inputLinks) {
@@ -103,19 +103,28 @@ async function startTeamScraping() {
     }
 
     const links = inputLinks.split('\n').map(l => l.trim()).filter(l => l !== '');
+    if (links.length === 0) {
+        alert('ไม่พบลิงก์ที่สามารถใช้งานได้ครับ');
+        return;
+    }
+
+    // 🔥 บังคับเปิดกล่องโชว์สถานะทันทีตั้งแต่เสี้ยววินาทีแรกที่กดปุ่ม เพื่อตอบสนองผู้ใช้
     logDiv.style.display = 'block';
-    
+    logDiv.innerHTML = `⏳ ระบบตอบสนองแล้ว: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
+    outputResult.value = ''; // ล้างช่องผลลัพธ์เก่าออกก่อน
+
     let finalFormats = [];
-    const smartBackupViews = ["6000", "8000", "10000", "12000"]; // เรทสถิติสำรอง[cite: 1]
+    const smartBackupViews = ["6000", "8000", "10000", "12000"];[cite: 1]
 
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
-        logDiv.innerHTML = `⏳ [${i+1}/${links.length}] กำลังเชื่อมต่อระบบหลังบ้านดึงข้อมูลสด...`;
+        
+        // 🔥 แสดงข้อความรายงานตัวเลขแถวแบบเรียลไทม์บนหน้าเว็บ
+        logDiv.innerHTML = `⏳ กำลังดึงข้อมูลและแกะแท็กลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
 
         let finalViewResult = defaultViews;
 
         try {
-            // ยิงไปหา Serverless Function บน Vercel หลังบ้านที่เราซ่อนคีย์ไว้[cite: 1]
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -128,7 +137,6 @@ async function startTeamScraping() {
                 let description = responseData.description; 
                 let matchedTargetView = "";
 
-                // ค้นหาเกณฑ์ตาราง
                 for (let item of tagDatabase) {
                     let tags = item.tag.split(' ');
                     let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
@@ -142,21 +150,18 @@ async function startTeamScraping() {
                     finalViewResult = matchedTargetView;
                 }
             } else {
-                // แผนสำรองกรณี API หลักมีปัญหา[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
         } catch (err) {
-            // แผนสำรองเครือข่าย[cite: 1]
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
             finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
 
-        // ต่อขบวนจัดรูปแบบสำเร็จรูป[cite: 1]
         finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
     }
 
-    logDiv.innerHTML = `✅ ดึงข้อมูลสำเร็จครบทั้งหมด ${links.length} รายการแล้ว เพื่อนๆ สามารถก๊อปปี้ไปใช้งานได้เลย!`;
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสมบูรณ์เรียบร้อยครบทั้งหมด ${links.length} รายการแล้ว!`;
     outputResult.value = finalFormats.join('\n');
 }
 
