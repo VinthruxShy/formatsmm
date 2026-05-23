@@ -6,7 +6,7 @@
     <title>เว็บ format SMM</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
-        .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #1a73e8; margin-bottom: 25px; }
         label { font-weight: bold; display: block; margin-bottom: 8px; }
         input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
@@ -14,7 +14,7 @@
         .btn-group { text-align: center; margin: 20px 0; }
         
         .setup-grid { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
-        .setup-item { flex: 1; min-width: 200px; }
+        .setup-item { flex: 1; min-width: 220px; }
         
         button { 
             background-color: #1a73e8; 
@@ -37,8 +37,11 @@
         .layer-table th, .layer-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         .layer-table th { background-color: #f1f3f4; color: #5f6368; font-weight: bold; }
         .layer-table tr:hover { background-color: #f8f9fa; }
+        
+        /* สีป้ายสถานะแยกให้เห็นความต่างชัดเจน */
         .badge-clip { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .badge-view { background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-skip { background: #fef9e7; color: #b7950b; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .badge-delete { background: #fadbd8; color: #78281f; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
@@ -60,21 +63,26 @@
             <input type="number" id="startClipNo" value="1" min="1" max="22">
         </div>
         <div class="setup-item">
-            <!-- ⚡ ช่องระบบทำลายล้างลิงก์: ใส่ตัวเลขคลิปที่พี่ไม่ได้ลงและต้องการลบลิงก์นั้นทิ้งไปเลย -->
-            <label>🗑️ สั่งลบลิงก์ของคลิปหมายเลข (ใส่เลขแยกด้วยจุลภาค):</label>
-            <input type="text" id="deleteClips" value="" placeholder="เช่น 15">
+            <!-- 🟡 ระบบยกเว้น (กระโดดข้ามเลขเกณฑ์วิว) -->
+            <label>🟡 ยกเว้น/ข้ามเกณฑ์คลิปหมายเลข:</label>
+            <input type="text" id="skipClips" value="" placeholder="เช่น 15">
         </div>
         <div class="setup-item">
-            <label>📊 วิวมาตรฐาน (กรณีเกินตาราง 22 คลิป):</label>
+            <!-- 🔴 ระบบเตะลบลิงก์ทิ้งทันที -->
+            <label>🔴 สั่งลบลิงก์ของคลิปหมายเลข:</label>
+            <input type="text" id="deleteClips" value="" placeholder="เช่น 18">
+        </div>
+        <div class="setup-item">
+            <label>📊 วิวมาตรฐาน (กรณีเกินตาราง):</label>
             <input type="number" id="defaultViews" value="10000">
         </div>
     </div>
 
-    <label>1. วางลิงก์ URL TikTok ทั้งหมด (ระบบจะตัดอันที่เก่าออก และลบบรรทัดคลิปที่ไม่ต้องการให้เอง):</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ยาวพรืดจากคลิปที่ 1 ถึงล่าสุดได้เลย..."></textarea>
+    <label>1. วางลิงก์ URL TikTok ทั้งหมดลงที่นี่ (ระบบจะเรียงลำดับจากล่างขึ้นบนอัตโนมัติ):</label>
+    <textarea id="inputLinks" placeholder="วางลิงก์ยาวพรืดจากคลิปแรกถึงล่าสุดได้เลย..."></textarea>
 
     <div class="btn-group">
-        <button type="button" onclick="formatWithLinkDeletion()">⚡ เริ่มประมวลผลระบบลบลิงก์และคัดกรองเลเยอร์</button>
+        <button type="button" onclick="processFlexibleFormat()">⚡ เริ่มคำนวณระบบจัดรูปแบบอัจฉริยะ</button>
     </div>
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
@@ -86,7 +94,7 @@
                 <tr>
                     <th style="width: 15%;">ลำดับในตาราง</th>
                     <th>ลิงก์วิดีโอ TikTok ของพี่</th>
-                    <th style="width: 20%;">สถานะ / ยอดวิวที่จัดสรร</th>
+                    <th style="width: 25%;">สถานะ / ยอดวิวที่จัดสรรให้</th>
                 </tr>
             </thead>
             <tbody id="layerTableBody">
@@ -126,11 +134,12 @@ const viewSequenceTable = [
     "10000"  // คลิปที่ 22
 ];
 
-function formatWithLinkDeletion() {
+function processFlexibleFormat() {
     const logDiv = document.getElementById('statusLog');
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
     const startClipNo = parseInt(document.getElementById('startClipNo').value.trim()) || 1;
+    const skipClipsInput = document.getElementById('skipClips').value.trim();
     const deleteClipsInput = document.getElementById('deleteClips').value.trim();
     const defaultViews = document.getElementById('defaultViews').value.trim();
     const outputResult = document.getElementById('outputResult');
@@ -148,79 +157,99 @@ function formatWithLinkDeletion() {
         return;
     }
 
-    // แปลงรายชื่อคลิปที่สั่งลบลิงก์ให้เป็นตัวเลขในกล่อง Array
-    const deletedClips = deleteClipsInput.split(',')
-        .map(item => parseInt(item.trim()))
-        .filter(item => !isNaN(item));
+    // แปลงข้อมูลกล่องยกเว้น (Skip) และ กล่องลบลิงก์ (Delete)
+    const skippedClips = skipClipsInput.split(',').map(item => parseInt(item.trim())).filter(item => !isNaN(item));
+    const deletedClips = deleteClipsInput.split(',').map(item => parseInt(item.trim())).filter(item => !isNaN(item));
 
     tableBody.innerHTML = '';
     let finalFormats = [];
     let tableRowsHtml = '';
 
-    // ⚡ [ตรรกะระดับโปร] รันเลขคลิปตั้งแต่ 1 จากล่างขึ้นบนตามปกติก่อน เพื่อระบุตัวตนดั้งเดิมของทุกลิงก์
+    // ⚡ [ตรรกะระบบจับคู่ย้อนศรอัจฉริยะ] 
+    // กำหนดหมายเลขลำดับคลิปให้ทุกลิงก์จากล่างขึ้นบน โดยมองลิงก์ล่างสุดคือคลิปเริ่มต้นที่ไม่ได้สั่งลบ
     let clipAssignments = new Array(links.length);
     let currentClipNumber = 1;
 
     for (let i = links.length - 1; i >= 0; i--) {
+        // ถ้าระบบวิ่งไปเจอเลขที่สั่งลบ (Delete) ให้ข้ามเลขนั้นไปแจกให้ลิงก์ตัวถัดไปทันที (เตะลิงก์ออก)
+        while (deletedClips.includes(currentClipNumber)) {
+            currentClipNumber++;
+        }
         clipAssignments[i] = currentClipNumber;
         currentClipNumber++;
     }
 
-    let processedCount = 0;
+    let activeCount = 0;
 
-    // วนลูปจากบนลงล่างเพื่อคัดกรองและประมวลผลขั้นสุดท้าย
+    // ประมวลผลจากบนลงล่างเพื่อกรองท่อนเริ่มทำ และจัดสรรระบบยกเว้น (Skip)
     for (let i = 0; i < links.length; i++) {
         let assignedClipNo = clipAssignments[i];
         let url = links[i];
 
-        // 🛑 ดักล็อกช่องที่ 1: ถ้าเป็นลิงก์ที่เก่ากว่าจุดเริ่มต้น (เช่น ต่ำกว่าคลิป 16) ตัดทิ้งทันที
+        // ✂️ ตัดทิ้งทันทีหากลิงก์มีลำดับต่ำกว่าจุดตัดเริ่มต้นของพี่ (เช่น ต่ำกว่าคลิป 16)
         if (assignedClipNo < startClipNo) {
             continue; 
         }
 
-        // 🗑️ ดักล็อกช่องที่ 2 (ระบบลบลิงก์ตามสั่งของพี่): 
-        // ถ้าเลขคลิปของลิงก์นี้ตรงกับตัวที่พี่สั่งลบ (เช่น คลิปที่ 15) ระบบจะเตะลิงก์นี้ทิ้งทันที! ไม่เอาลงช่อง Format
+        // 🗑️ เช็คกรณีคลิปโดนสั่งลบ (Delete) พ่นสถานะสีแดงและลบออกจากช่อง Format ทันที
         if (deletedClips.includes(assignedClipNo)) {
-            // โชว์ในตารางเลเยอร์สีแดงให้เห็นชัดๆ ว่าลิงก์แถวนี้โดนสั่งลบทำลายทิ้งไปเรียบร้อยแล้ว
             tableRowsHtml += `
                 <tr style="background-color: #fdf2f2;">
                     <td><span class="badge-delete">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
                     <td style="word-break: break-all; color: #99a3a4; text-decoration: line-through;">${url}</td>
-                    <td><span class="badge-delete">❌ ลบลิงก์นี้ออกแล้ว</span></td>
+                    <td><span class="badge-delete">🗑️ ลบลิงก์นี้ออกตามสั่ง</span></td>
                 </tr>
             `;
-            continue; 
+            continue;
         }
 
-        // หากผ่านด่านมาได้ ให้นำมาจับคู่วิวดั้งเดิมในตารางตามตำแหน่งดัชนี
-        processedCount++;
-        let sequenceIndex = assignedClipNo - 1;
+        activeCount++;
         let targetView = defaultViews;
+        let isSkippedMode = false;
 
+        // 🟡 เช็คกรณีคลิปโดนสั่งยกเว้น (Skip) ดันเลขกระโดดข้ามแต่ไม่ลบลิงก์
+        let finalCheckIndex = assignedClipNo;
+        if (skippedClips.includes(assignedClipNo)) {
+            isSkippedMode = true;
+            // ดีดตัวชี้เกณฑ์ยอดวิวขยับขึ้นไปข้างหน้า 1 ตำแหน่งตามหลักยกเว้นข้ามสถิติ
+            finalCheckIndex = assignedClipNo + 1;
+        }
+
+        let sequenceIndex = finalCheckIndex - 1;
         if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
             targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // เติมข้อมูลลงช่อง Format ส่งงาน
+        // เติมข้อมูลลงช่องรูปแบบ Format SMM สำหรับส่งงาน
         finalFormats.push(`${serviceId}|${url}|${targetView}`);
 
-        // ฉีดลงเลเยอร์ตารางเช็คงานปกติ
-        tableRowsHtml += `
-            <tr>
-                <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
-                <td style="word-break: break-all; color: #1a73e8;">${url}</td>
-                <td><span class="badge-view">${Number(targetView).toLocaleString()} วิว</span></td>
-            </tr>
-        `;
+        // สร้างแถวเลเยอร์ตารางแยก
+        if (isSkippedMode) {
+            tableRowsHtml += `
+                <tr style="background-color: #fefde8;">
+                    <td><span class="badge-skip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
+                    <td style="word-break: break-all; color: #b7950b;">${url}</td>
+                    <td><span class="badge-skip">🟡 ยกเว้น (ใช้เกณฑ์วิวคลิป ${finalCheckIndex} -> ${Number(targetView).toLocaleString()} วิว)</span></td>
+                </tr>
+            `;
+        } else {
+            tableRowsHtml += `
+                <tr>
+                    <td><span class="badge-clip">คลิปที่ ${String(assignedClipNo).padStart(2, '0')}</span></td>
+                    <td style="word-break: break-all; color: #1a73e8;">${url}</td>
+                    <td><span class="badge-view">${Number(targetView).toLocaleString()} วิว</span></td>
+                </tr>
+            `;
+        }
     }
 
-    // แสดงผลออกหน้าเว็บ
+    // ผลลัพธ์รวมร่าง
     outputResult.value = finalFormats.join('\n');
     tableBody.innerHTML = tableRowsHtml;
     tableContainer.style.display = 'block';
 
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `✅ ระบบกรองข้อมูลขั้นสูงสุดเสร็จสิ้น! ลบลิงก์ขยะออกตามสั่ง และจัดรูปแบบ Format ตั้งแต่คลิปที่ ${startClipNo} เรียบร้อย รวมเหลือทำงานทั้งหมด ${processedCount} รายการ`;
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! ระบบยืดหยุ่นแยกเลเยอร์แยกฟังก์ชัน ยกเว้น/ลบลิงก์ เรียบร้อย รวมเหลือส่งงาน ${activeCount} รายการ`;
 }
 
 function copyResult() {
@@ -231,7 +260,7 @@ function copyResult() {
     }
     out.select();
     document.execCommand('copy');
-    alert('คัดลอกรูปแบบ Format เรียบร้อยแล้วครับ!');
+    alert('คัดลอกรูปแบบ Format ไปใช้งานเรียบร้อยแล้วครับ!');
 }
 </script>
 
