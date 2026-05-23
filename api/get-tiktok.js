@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // รองรับ CORS ให้หน้าเว็บดึงข้อมูลได้
+    // รองรับ CORS ให้หน้าเว็บเรียกใช้งานได้
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -20,40 +20,43 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // แกะเอา ID วิดีโอจากลิงก์ TikTok
-        const match = url.match(/video\/(\d+)/);
-        if (!match) {
-            return res.status(400).json({ error: 'รูปแบบลิงก์ TikTok ไม่ถูกต้อง' });
-        }
-        const videoId = match[1];
-
-        // เรียกใช้งานดึงข้อมูลจาก RapidAPI (เปลี่ยน URL และ Key ตามบริการที่คุณเลือกใช้)
+        // ดึงตัวเลือก Endpoint ของเจ้านี้ (ดึงข้อมูลผ่านแชร์ลิงก์หรือลิงก์วิดีโอ)
         const options = {
-            method: 'GET',
-            url: 'https://tiktok-all-in-one-downloader.p.rapidapi.com/video/info', 
-            params: { video_id: videoId },
+            method: 'POST',
+            url: 'https://tiktok-scraper7.p.rapidapi.com/api/video/info', // ปรับ endpoint เป็นตัวหลักของ tikwm
             headers: {
-                'X-RapidAPI-Key': 'ae5e0d0718msha21c8c8facfcb43p18db91jsn57dd5d660839
-',
+                'content-type': 'application/x-www-form-urlencoded',
+                // 🔥 คีย์ของคุณจากหน้าจอภาพก่อนหน้า
+                'X-RapidAPI-Key': 'ae5e0d0718msha21c8cfacfcb43p18db91jsn57dd5d660839',
                 'X-RapidAPI-Host': 'tiktok-scraper7.p.rapidapi.com'
-            }
+            },
+            data: new URLSearchParams({
+                url: url,
+                hd: '1'
+            })
         };
 
         const response = await axios.request(options);
-        const videoData = response.data;
+        
+        // โครงสร้างของข้อมูลจากเจ้า tikwm จะถูกห่อไว้ในวัตถุชื่อ data อีกทีหนึ่ง
+        if (response.data && response.data.code === 0 && response.data.data) {
+            const videoInfo = response.data.data;
+            
+            // ดึงยอดวิวปัจจุบัน และข้อความอธิบาย (ซึ่งจะมีแฮชแท็กปนอยู่)
+            const liveViews = videoInfo.play_count || 0;
+            const description = videoInfo.title || "";
 
-        // ดึงค่ายอดวิว และ ข้อความแฮชแท็ก สดๆ จาก TikTok
-        // (โครงสร้างการตอบกลับของ JSON อาจเปลี่ยนไปตาม API แต่ละเจ้า ให้ปรับตามจริง)
-        const liveViews = videoData.play_count || videoData.views || 0;
-        const description = videoData.title || videoData.description || "";
-
-        return res.status(200).json({
-            views: liveViews,
-            description: description
-        });
+            return res.status(200).json({
+                views: liveViews,
+                description: description
+            });
+        } else {
+            // หาก API ส่งค่ากลับมาแต่โครงสร้างไม่ถูกต้อง
+            return res.status(400).json({ error: response.data.msg || 'โครงสร้าง API ไม่ถูกต้อง' });
+        }
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลจาก TikTok ได้ในขณะนี้' });
+        return res.status(500).json({ error: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ RapidAPI ได้' });
     }
 };
