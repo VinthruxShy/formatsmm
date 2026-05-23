@@ -44,53 +44,53 @@
             <input type="text" id="serviceId" value="702">
         </div>
         <div style="flex:1;">
-            <label>📊 ยอดวิวมาตรฐาน (หากแฮชแท็กไม่ตรงกับ 22 คลิป):</label>
+            <label>📊 ยอดวิวมาตรฐาน (กรณีฉุกเฉินบรรทัดเกินตาราง):</label>
             <input type="number" id="defaultViews" value="10000">
         </div>
     </div>
 
-    <label>1. วางลิงก์ URL TikTok เพียวๆ บรรทัดละ 1 ลิงก์:</label>
-    <textarea id="inputLinks" placeholder="วางลิงก์ที่นี่..."></textarea>
+    <label>1. วางลิงก์ URL TikTok เพียวๆ เรียงจากล่าสุด (บนสุด) ไปหาเก่าสุด (ล่างสุด):</label>
+    <textarea id="inputLinks" placeholder="วางลิงก์ที่ก๊อปปี้มาลงที่นี่..."></textarea>
 
     <div class="btn-group">
-        <button type="button" onclick="startTeamScraping()">⚡ เริ่มจัดรูปแบบรูปแบบ Format ในทันที</button>
+        <button type="button" onclick="formatBySequence()">⚡ เริ่มจัดรูปแบบรูปแบบ Format ในทันที</button>
     </div>
 
     <div id="statusLog" class="status-log" style="display:none;"></div>
 
     <label>2. ผลลัพธ์รูปแบบตารางสำเร็จรูป (Format):</label>
-    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้เมื่อระบบประมวลผลเสร็จ..."></textarea>
+    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้ทันทีเมื่อกดปุ่ม..."></textarea>
     <button type="button" class="copy-btn" onclick="copyResult()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
 </div>
 
 <script>
-// 🔒 ฐานข้อมูลอ้างอิงรายคลิป 01-22 ของพี่อย่างเป็นทางการ ล็อกค่ายอดวิวตามแฮชแท็กตรงตัวเป๊ะๆ
-const tagDatabase = [
-    { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" }, // คลิปที่ 01
-    { tag: "#RoV #คลิปRoV #rovth", view: "6000" }, // คลิปที่ 02
-    { tag: "#RoV #RoVเป็นเกมตลก #rovth", view: "8000" }, // คลิปที่ 03
-    { tag: "#RoV #RoVเป็นเกมตลก #fpy", view: "8000" }, // คลิปที่ 04
-    { tag: "#RoV #rovth #GodlikeCreatorCup #ล่าเงินรางวัล #ไฮไลต์มันส์ๆ", view: "8000" }, // คลิปที่ 05
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #การจุติของไททัน #ArcaneBrawl", view: "8000" }, // คลิปที่ 06
-    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #RoV5v5", view: "8000" }, // คลิปที่ 07
-    { tag: "#RoV #rovth #RoVThailand", view: "10000" }, // คลิปที่ 08
-    { tag: "#RoV #rovth #fpy", view: "10000" }, // คลิปที่ 09
-    { tag: "#RoV #rovth #trending", view: "10000" }, // คลิปที่ 10
-    { tag: "#RoV #RoVเป็นเกมตลก #trending", view: "12000" }, // คลิปที่ 11
-    { tag: "#RoV #RoVเป็นเกมตลก #เล่นRoV #rovh", view: "12000" }, // คลิปที่ 12
-    { tag: "#RoV #RoVเป็นเกมตลก #RoVเกมภาพสวย", view: "12000" }, // คลิปที่ 13
-    { tag: "#RoV #rovth #เล่นRoV", view: "12000" }, // คลิปที่ 14
-    { tag: "#RoV #rovth #คลิปRoV", view: "8000" }, // คลิปที่ 15
-    { tag: "#RoV #rovth #GodlikeCreatorCup #Elimination", view: "8000" }, // คลิปที่ 16
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #FlowbornArmorTitan", view: "10000" }, // คลิปที่ 17
-    { tag: "#RoV #RoVThailand #RoVเป็นเกมตลก #ใส่นัวแฟมิลี่", view: "8000" }, // คลิปที่ 18
-    { tag: "#RoV #AttackOnTitan #RoVxAOT #TitanFever #FortuneSurvival", view: "10000" }, // คลิปที่ 19
-    { tag: "#RoV #RoVเป็นเกมตลก #ล็อกอินลุ้นสกินMystical", view: "8000" }, // คลิปที่ 20
-    { tag: "#RoV #rovth #GodlikeCreatorCup #รอบชิงชนะเลิศ", view: "10000" }, // คลิปที่ 21
-    { tag: "#RoV #rovth #GodlikeCreatorCup #TheGodlikeJourney", view: "10000" } // คลิปที่ 22
+// 🔒 ผูกตารางเกณฑ์ยอดวิว 22 คลิปของพี่ เรียงลำดับจากคลิปที่ 01 (เก่าสุด) ไปจนถึงคลิปที่ 22 (ใหม่สุด)
+const viewSequenceTable = [
+    "6000",  // คลิปที่ 01
+    "6000",  // คลิปที่ 02
+    "8000",  // คลิปที่ 03
+    "8000",  // คลิปที่ 04
+    "8000",  // คลิปที่ 05
+    "8000",  // คลิปที่ 06
+    "8000",  // คลิปที่ 07
+    "10000", // คลิปที่ 08
+    "10000", // คลิปที่ 09
+    "10000", // คลิปที่ 10
+    "12000", // คลิปที่ 11
+    "12000", // คลิปที่ 12
+    "12000", // คลิปที่ 13
+    "12000", // คลิปที่ 14
+    "8000",  // คลิปที่ 15
+    "8000",  // คลิปที่ 16
+    "10000", // คลิปที่ 17
+    "8000",  // คลิปที่ 18
+    "10000", // คลิปที่ 19
+    "8000",  // คลิปที่ 20
+    "10000", // คลิปที่ 21
+    "10000"  // คลิปที่ 22
 ];
 
-async function startTeamScraping() {
+function formatBySequence() {
     const logDiv = document.getElementById('statusLog');
     const inputLinks = document.getElementById('inputLinks').value.trim();
     const serviceId = document.getElementById('serviceId').value.trim();
@@ -102,6 +102,7 @@ async function startTeamScraping() {
         return;
     }
 
+    // แยกลิงก์ออกเป็นแถว ตัดช่องว่างทิ้ง
     const links = inputLinks.split('\n').map(l => l.trim()).filter(l => l !== '');
     if (links.length === 0) {
         alert('ไม่พบลิงก์ข้อมูลในช่องนำเข้าครับ');
@@ -109,68 +110,33 @@ async function startTeamScraping() {
     }
 
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังดึงแฮชแท็กและตัดยอดวิวตามคลิปที่ลง...`;
-    outputResult.value = '';
+    logDiv.innerHTML = `⏳ ตรวจพบทั้งหมด ${links.length} รายการ กำลังจัดระเบียบ Format ยอดวิวตามลำดับแถว...`;
 
     let finalFormats = [];
-
+    
+    // ⚡ ตรรกะย้อนศรอัจฉริยะ: 
+    // วิ่งอ่านลิงก์จากบนลงล่างตามที่พี่วาง แต่นับดัชนียอดวิวจากล่างขึ้นบน (แถวสุดท้ายของพี่ = คลิปที่ 1 = viewSequenceTable[0])
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
-        logDiv.innerHTML = `⏳ กำลังแกะแฮชแท็กเพื่อหาคู่คลิปที่ [${i+1}/${links.length}]: ${url}`;
         
-        let matchedView = ""; 
-        let titleFromApi = "";
-
-        // ยิงไปหลังบ้านเพื่อแกะตัวข้อความแฮชแท็กจริง (title) ออกมาตรวจ
-        try {
-            const response = await fetch('/api/get-tiktok', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url })
-            });
-
-            if (response.ok) {
-                const responseData = await response.json();
-                if (responseData && responseData.title) {
-                    titleFromApi = responseData.title; // ดึงแฮชแท็กจริงจากคลิปมาได้สำเร็จ
-                }
-            }
-        } catch (err) {
-            // หาก API ล่ม จะหลุดไปใช้ตรรกะตรวจเช็คความปลอดภัยด้านล่างแทน
+        // คำนวณหาลำดับที่แท้จริงจากท้ายลำดับ
+        // เช่น ถ้าพี่วางมา 22 ลิงก์ ลิงก์ล่างสุด (i = 21) จะกลายเป็นคลิปลำดับที่ 0 (คลิปที่ 1 ของตาราง = 6000)
+        let sequenceIndex = (links.length - 1) - i; 
+        
+        let targetView = defaultViews;
+        
+        // ถ้าอยู่ในช่วง 22 คลิป ให้ดึงยอดวิวตามลำดับตารางมาเสียบทันที ไม่ต้องง้อ API
+        if (sequenceIndex >= 0 && sequenceIndex < viewSequenceTable.length) {
+            targetView = viewSequenceTable[sequenceIndex];
         }
 
-        // ⚡ ตรรกะตรวจคู่แฮชแท็กพรีเมียม: นำข้อความแฮชแท็กจริงมาเทียบกับฐานข้อมูลคลิป 01-22
-        if (titleFromApi) {
-            for (let item of tagDatabase) {
-                let tags = item.tag.split(' ');
-                // เช็คว่าแฮชแท็กในคลิปมีคำเหล่านั้นครบทั้งหมดหรือไม่
-                let isMatchAll = tags.every(t => titleFromApi.toLowerCase().includes(t.toLowerCase()));
-                if (isMatchAll) {
-                    matchedView = item.view; // สวมค่ายอดวิวตามตารางคลิปที่พี่กำหนดทันที (เช่น เจอคลิป 18 จะสวม 8000 ทันที)
-                    break;
-                }
-            }
-        }
-
-        // แผนสำรองฉุกเฉิน: หาก API โควตาหมดจนดึงอะไรไม่ได้เลย ให้ดึงเลข ID ท้ายลิงก์มาคำนวณสลับค่าในกลุ่มตาราง 22 คลิปของพี่แทน ปุ่มจะได้ไม่ค้าง
-        if (!matchedView || matchedView === "0") {
-            const urlParts = url.split('/');
-            let lastPart = urlParts[urlParts.length - 1].split('?')[0].trim();
-            let idNumbers = lastPart.replace(/[^0-9]/g, '');
-            if (idNumbers.length > 0) {
-                let lastDigit = parseInt(idNumbers.charAt(idNumbers.length - 1));
-                let safeIndex = lastDigit % tagDatabase.length;
-                matchedView = tagDatabase[safeIndex].view;
-            } else {
-                matchedView = defaultViews;
-            }
-        }
-
-        finalFormats.push(`${serviceId}|${url}|${matchedView}`);
+        // จัดชิ้นส่วนเข้าคู่ Format
+        finalFormats.push(`${serviceId}|${url}|${targetView}`);
     }
 
-    logDiv.innerHTML = `✅ จัดทำรูปแบบ Format ตรงตามเกณฑ์ตารางคลิปเสร็จเรียบร้อยแล้ว จำนวน ${links.length} รายการ!`;
+    // พ่นข้อความ Format ออกหน้าจอทันทีใน 0.001 วินาที!
     outputResult.value = finalFormats.join('\n');
+    logDiv.innerHTML = `✅ ประมวลผลเสร็จสิ้น! จัดรูปแบบ Format ตรงตามลำดับคลิปของพี่ครบถ้วน ${finalFormats.length} รายการแล้วครับ`;
 }
 
 function copyResult() {
