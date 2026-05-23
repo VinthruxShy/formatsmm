@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือแปลงรูปแบบข้อมูล (Format Converter v6.0)</title>
+    <title>เครื่องมือแปลงรูปแบบข้อมูลอัจฉริยะ (Format Converter v7.0)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,7 +13,7 @@
             color: #333;
         }
         .container {
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
             background: #fff;
             padding: 30px;
@@ -50,7 +50,7 @@
         }
         textarea {
             width: 100%;
-            height: 180px;
+            height: 150px;
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 6px;
@@ -58,6 +58,12 @@
             resize: vertical;
             font-family: monospace;
             font-size: 14px;
+        }
+        .rules-area {
+            background-color: #fcf8e3;
+            border: 1px solid #fbeed5;
+            color: #c09853;
+            height: 120px;
         }
         .btn-group {
             margin: 20px 0;
@@ -86,16 +92,19 @@
         }
         .note {
             font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .highlight-note {
             color: #1a73e8;
             font-weight: bold;
-            margin-top: 5px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>เครื่องมือแปลงรูปแบบข้อมูล + ระบบแกะลิงก์เพียวๆ อัจฉริยะ (v6.0)</h2>
+    <h2>เครื่องมือแปลงรูปแบบข้อมูลสำหรับหลายบัญชี (v7.0)</h2>
     
     <div class="row">
         <div class="form-group col">
@@ -103,19 +112,25 @@
             <input type="text" id="customServiceId" value="702" placeholder="เช่น 702">
         </div>
         <div class="form-group col">
-            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่พบประวัติลิงก์นี้):</label>
+            <label for="defaultViews">📊 ยอดวิวเริ่มต้น (หากไม่เข้าเงื่อนไขใดๆ):</label>
             <input type="number" id="defaultViews" value="10000" placeholder="เช่น 10000">
         </div>
     </div>
 
+    <!-- 🔥 ส่วนตั้งค่ากฎเกณฑ์แฮชแท็กหรือชื่อแอคเคาท์ ยืดหยุ่นปรับเปลี่ยนได้ตลอดเวลา -->
     <div class="form-group">
-        <label for="inputData">1. วางลิงก์ URL TikTok เพียวๆ ตรงนี้:</label>
-        <textarea id="inputData" placeholder="วางลิงก์เพียวๆ ยาวๆ ลงมาได้เลยครับ ระบบจะเช็กไอดีท้ายลิงก์กับฐานข้อมูลให้เอง..."></textarea>
-        <div class="note">✨ เปิดใช้งานระบบจำพฤติกรรมลิงก์จากฐานข้อมูลตาราง SMM เรียบร้อยแล้ว!</div>
+        <label for="tagRules">⚙️ ตั้งค่าเกณฑ์ยอดวิว (กำหนดคำคีย์เวิร์ด แฮชแท็ก หรือชื่อแอคเคาท์แยกตามวิว):</label>
+        <textarea id="tagRules" class="rules-area" placeholder="ใส่คำคีย์เวิร์ดคั่นด้วยเครื่องหมายจุลภาคตามด้วยจำนวนวิว"></textarea>
+        <div class="note">พิมพ์คีย์เวิร์ดที่ต้องการดักจับ ตามด้วยเครื่องหมายเครื่องหมายลูกศร <span class="highlight-note">-></span> แล้วตามด้วยยอดวิว (บรรทัดละ 1 กฎ)</div>
+    </div>
+
+    <div class="form-group">
+        <label for="inputData">1. วางลิงก์ URL TikTok หรือข้อความสังเขปตรงนี้:</label>
+        <textarea id="inputData" placeholder="วางลิงก์เพียวๆ ของแอคเคาท์ใหม่ๆ ลงมาได้เลยครับ..."></textarea>
     </div>
     
     <div class="btn-group">
-        <button onclick="convertData()">⚡ แปลงข้อมูลจากลิงก์เพียวๆ</button>
+        <button onclick="convertData()">⚡ แปลงข้อมูลและวิเคราะห์ยอดวิวอัจฉริยะ</button>
     </div>
     
     <div class="form-group">
@@ -126,40 +141,35 @@
 </div>
 
 <script>
-// ฐานข้อมูลที่ผูก ID ท้ายลิงก์จริงเข้ากับจำนวนวิวจากตาราง format smm ของคุณ
-const urlDatabase = [
-    { id: "7642936997614570759", view: "10000" },
-    { id: "7642936968157859079", view: "10000" },
-    { id: "7642936932149759240", view: "8000" },
-    { id: "7642936907759914247", view: "10000" },
-    { id: "7642936876998954247", view: "8000" },
-    { id: "7642936835102067975", view: "10000" },
-    { id: "7642936809306983688", view: "8000" },
-    { id: "7642935948275223816", view: "12000" },
-    { id: "7642935910598118664", view: "12000" },
-    { id: "7642935888317779208", view: "12000" },
-    { id: "7642935828611730706", view: "12000" },
-    { id: "7642935810420919559", view: "10000" },
-    { id: "7642935773003599122", view: "10000" },
-    { id: "7642935749003775240", view: "10000" },
-    { id: "7642935710395239687", view: "8000" },
-    { id: "7642935671035825426", view: "8000" },
-    { id: "7642935635774295314", view: "8000" },
-    { id: "7642935601192291592", view: "8000" },
-    { id: "7642935567071595794", view: "8000" },
-    { id: "7642935512898063624", view: "6000" },
-    { id: "7642935473500900616", view: "6000" }
-];
+// ใส่เกณฑ์เริ่มต้นที่คุณใช้บ่อยไว้ให้ในระบบก่อนเพื่อให้เปิดมาใช้งานได้ทันที
+document.getElementById('tagRules').value = 
+`#RoVเป็นเกมตลก -> 6000\n` +
+`@601boq -> 8000\n` +
+`#rovth -> 10000\n` +
+`#trending -> 12000`;
 
 function convertData() {
     const input = document.getElementById('inputData').value;
     const customServiceId = document.getElementById('customServiceId').value.trim();
     const defaultViews = document.getElementById('defaultViews').value.trim() || '10000';
+    const rulesText = document.getElementById('tagRules').value;
     
     if (!input.trim()) {
-        alert('กรุณาวางลิงก์ข้อมูลก่อนครับ');
+        alert('กรุณากรอกหรือวางข้อมูลก่อนครับ');
         return;
     }
+
+    // แปลง Text กฎเกณฑ์ให้กลายเป็น Array โครงสร้างข้อมูลเพื่อนำไปประมวลผล
+    let dynamicRules = [];
+    rulesText.split('\n').forEach(rLine => {
+        if (rLine.includes('->')) {
+            let parts = rLine.split('->');
+            dynamicRules.push({
+                keyword: parts[0].trim().toLowerCase(),
+                view: parts[1].trim().replace(/[^0-9]/g, '')
+            });
+        }
+    });
 
     const lines = input.split('\n');
     let result = [];
@@ -171,26 +181,40 @@ function convertData() {
         let url = '';
         let views = '';
 
-        // ดึงเฉพาะตัวลิงก์ URL ออกมาจากบรรทัดนั้นๆ
-        const urlRegex = /(https?:\/\/[^\s]+)/;
-        const foundUrl = line.match(urlRegex);
-        
-        if (foundUrl) {
-            url = foundUrl[0];
-            
-            // 🔥 วิธีการสแกนหาตัวเลข ID หลังเครื่องหมายสแลช (/) ตัวสุดท้ายของลิงก์
-            // เช่น ดึง "7642935473500900616" ออกมาจากลิงก์เพื่อเอาไปเทียบวิว
-            const urlParts = url.split('/');
-            let lastPart = urlParts[urlParts.length - 1].split('?')[0].trim(); // ตัดส่วนพารามิเตอร์ ? ออกถ้ามี
+        // 1. ค้นหาลิงก์ URL จากในบรรทัด
+        let columns = line.split('\t').map(col => col.trim());
+        let urlIndex = columns.findIndex(col => col.startsWith('http://') || col.startsWith('https://'));
 
-            // นำ ID ที่แกะได้ไปค้นหาในฐานข้อมูล
-            let matchDatabase = urlDatabase.find(item => item.id === lastPart);
-            
-            if (matchDatabase) {
-                views = matchDatabase.view; // ถ้าตรงคู่ในตาราง จะดึงค่ายอดวิวที่แท้จริงมาใส่ให้ทันที
-            } else {
-                views = defaultViews; // ถ้าเป็นลิงก์ใหม่ๆ ที่ไม่อยู่ในตาราง 21 ตัวนี้ จะใช้ค่าเริ่มต้นด้านบนแทนครับ
+        if (urlIndex !== -1) {
+            url = columns[urlIndex];
+            if (urlIndex < columns.length - 1 && columns[urlIndex + 1] !== '') {
+                views = columns[urlIndex + 1].replace(/[^0-9]/g, '');
             }
+        } else {
+            const urlRegex = /(https?:\/\/[^\s]+)/;
+            const foundUrl = line.match(urlRegex);
+            if (foundUrl) url = foundUrl[0];
+        }
+
+        // 2. ถ้าในตารางมีระบุยอดวิวมาอยู่แล้ว (เช่นระบุพ่วงท้ายมา) ให้ดึงค่านั้นก่อน
+        if (!views) {
+            const viewMatch = line.match(/[Vv]iew\s?([\d,]+)/);
+            if (viewMatch && viewMatch[1]) {
+                views = viewMatch[1].replace(/,/g, '');
+            }
+        }
+
+        // 3. 🔥 ระบบวิเคราะห์ยอดวิวแบบไดนามิก รองรับทุกแอคเคาท์ใหม่
+        if (!views) {
+            let matchedView = '';
+            for (let rule of dynamicRules) {
+                // ค้นหาคำคีย์เวิร์ดในบรรทัดนั้น (รวมถึงส่วนประกอบในตัว URL เองด้วย เช่นชื่อ @แอคเคาท์)
+                if (line.toLowerCase().includes(rule.keyword)) {
+                    matchedView = rule.view;
+                    break; // เจอเงื่อนไขแรกที่ตรงแล้วหยุดลูปทันที
+                }
+            }
+            views = matchedView ? matchedView : defaultViews;
         }
 
         if (url) {
@@ -199,7 +223,7 @@ function convertData() {
     });
 
     if (result.length === 0) {
-        alert('ไม่พบลิงก์ URL ในช่องรับข้อมูลครับ');
+        alert('ไม่พบลิงก์ URL ในข้อมูลที่นำมาวางครับ');
         return;
     }
 
@@ -215,7 +239,7 @@ function copyToClipboard() {
     outputText.select();
     outputText.setSelectionRange(0, 99999);
     document.execCommand("copy");
-    alert("คัดลอกรูปแบบ Format ไปใช้งานเรียบร้อยแล้ว!");
+    alert("คัดลอกข้อมูลเรียบร้อยแล้ว!");
 }
 </script>
 
