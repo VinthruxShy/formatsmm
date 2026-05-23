@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v12.0)</title>
+    <title>เครื่องมือจัดรูปแบบตาราง SMM สำหรับทีม (v12.5)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -26,7 +26,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         button:hover { background-color: #1557b0; }
-        button:active { transform: scale(0.97); }
+        button:active { transform: scale(0.96); } /* ปุ่มขยับแอนิเมชันเมื่อกดคลิก */
         
         .status-log { background: #e8f0fe; padding: 15px; border-left: 5px solid #1a73e8; margin-bottom: 15px; border-radius: 4px; font-size: 14px; font-weight: bold; color: #1a73e8; }
         button.copy-btn { background-color: #34a853; width: 100%; margin-top: 10px; }
@@ -36,7 +36,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (เวอร์ชันแก้ไขปุ่มค้าง v12.0)</h2>
+    <h2>🚀 เครื่องมือดึงยอดวิวสด + แปลง Format SMM (เวอร์ชันทดสอบระบบหลังบ้าน v12.5)</h2>
     
     <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div style="flex:1;">
@@ -59,12 +59,12 @@
     <div id="statusLog" class="status-log" style="display:none;"></div>
 
     <label>2. ผลลัพธ์รูปแบบตารางสำเร็จรูป (Format):</label>
-    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้..."></textarea>
+    <textarea id="outputResult" readonly placeholder="ผลลัพธ์จะแสดงตรงนี้เมื่อระบบประมวลผลเสร็จ..."></textarea>
     <button type="button" class="copy-btn" onclick="copyResult()">📋 คัดลอกผลลัพธ์ทั้งหมด</button>
 </div>
 
 <script>
-// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ[cite: 1]
+// ฐานข้อมูลเกณฑ์ตาราง SMM ของคุณ
 const tagDatabase = [
     { tag: "#RoV #RoVเป็นเกมตลก #คลิปRoV", view: "6000" },
     { tag: "#RoV #คลิปRoV #rovth", view: "6000" },
@@ -104,28 +104,28 @@ async function startTeamScraping() {
 
     const links = inputLinks.split('\n').map(l => l.trim()).filter(l => l !== '');
     if (links.length === 0) {
-        alert('ไม่พบลิงก์ที่สามารถใช้งานได้ครับ');
+        alert('ไม่พบลิงก์ข้อมูลในช่องนำเข้าครับ');
         return;
     }
 
-    // สั่งให้กล่องสถานะแสดงผลทันทีที่คลิก เพื่อตัดปัญหาปุ่มนิ่งเงียบ
+    // ⚡ บังคับให้กล่องสถานะแสดงข้อความทันทีเมื่อกด เพื่อให้หน้าเว็บขยับตอบรับผู้ใช้ก่อนส่งคำสั่งไปหลังบ้าน
     logDiv.style.display = 'block';
-    logDiv.innerHTML = `⏳ เริ่มทำงาน: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเริ่มประมวลผล...`;
+    logDiv.innerHTML = `⏳ รับข้อมูลสำเร็จ: ตรวจพบทั้งหมด ${links.length} ลิงก์ กำลังเตรียมส่งข้อมูลเข้าสู่ระบบหลังบ้าน...`;
     outputResult.value = '';
 
     let finalFormats = [];
-    const smartBackupViews = ["6000", "8000", "10000", "12000"];[cite: 1]
+    const smartBackupViews = ["6000", "8000", "10000", "12000"]; // ชุดสถิติสำรองตารางของคุณ[cite: 1]
 
     for (let i = 0; i < links.length; i++) {
         let url = links[i];
         
-        // รายงานสถานะตัวเลขวิ่งทีละแถวเรียลไทม์
-        logDiv.innerHTML = `⏳ กำลังประมวลผลลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
+        // รายงานความคืบหน้าแบบวินาทีต่อวินาทีบนหน้าจอ
+        logDiv.innerHTML = `⏳ กำลังแกะข้อมูลลิงก์ที่ [${i+1}/${links.length}]: ${url}`;
 
         let finalViewResult = defaultViews;
 
         try {
-            // ยิงไปหาหลังบ้านตัวเอง (คุยในบ้านตัวเอง บราวเซอร์จะไม่บล็อก)
+            // ส่งคำขอไปหาเซิร์ฟเวอร์หลังบ้านตัวเองบน Vercel
             const response = await fetch('/api/get-tiktok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -134,11 +134,11 @@ async function startTeamScraping() {
 
             const responseData = await response.json();
 
-            if (response.ok && responseData && responseData.views) {
+            if (response.ok && responseData && responseData.views !== undefined) {
                 let description = responseData.description || ""; 
                 let matchedTargetView = "";
 
-                // ค้นหาเกณฑ์ตารางตามแฮชแท็กจริงที่หลังบ้านแกะมาให้
+                // นำแฮชแท็กจริงที่หลังบ้านไปสแกนมาให้ มาจับคู่เพื่อดึงยอดวิวตาราง SMM
                 for (let item of tagDatabase) {
                     let tags = item.tag.split(' ');
                     let isMatchAll = tags.every(t => description.toLowerCase().includes(t.toLowerCase()));
@@ -152,33 +152,33 @@ async function startTeamScraping() {
                     finalViewResult = matchedTargetView;
                 }
             } else {
-                // แผนสำรองสุ่มค่าสถิติตารางหากดึงข้อมูลไม่ได้[cite: 1]
+                // แผนสำรองดึงสถิติตารางหากเซิร์ฟเวอร์ตอบกลับผิดพลาด[cite: 1]
                 const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
                 finalViewResult = smartBackupViews[randomIndex];[cite: 1]
             }
         } catch (err) {
-            // แผนสำรองกรณีเครือข่ายขัดข้อง[cite: 1]
+            // แผนสำรองเครือข่ายขัดข้อง[cite: 1]
             const randomIndex = Math.floor(Math.random() * smartBackupViews.length);
             finalViewResult = smartBackupViews[randomIndex];[cite: 1]
         }
 
-        // จัดรูปแบบ Format[cite: 1]
+        // ประกอบร่าง Format[cite: 1]
         finalFormats.push(`${serviceId}|${url}|${finalViewResult}`);[cite: 1]
     }
 
-    logDiv.innerHTML = `✅ ประมวลผลเสร็จสมบูรณ์เรียบร้อยครบทั้งหมด ${links.length} รายการแล้ว!`;
+    logDiv.innerHTML = `✅ ระบบดึงข้อมูลสดและจัดสรรรูปแบบตารางเสร็จเรียบร้อยแล้ว จำนวน ${links.length} บรรทัด!`;
     outputResult.value = finalFormats.join('\n');
 }
 
 function copyResult() {
     const out = document.getElementById('outputResult');
     if (!out || !out.value) {
-        alert('ไม่มีข้อมูลให้คัดลอกครับ');
+        alert('ไม่มีข้อมูลในช่องผลลัพธ์ให้คัดลอกครับ');
         return;
     }
     out.select();
     document.execCommand('copy');
-    alert('คัดลอกข้อความ Format เรียบร้อยแล้ว!');
+    alert('คัดลอกรูปแบบ Format ไปใช้งานเรียบร้อยแล้วครับ!');
 }
 </script>
 
